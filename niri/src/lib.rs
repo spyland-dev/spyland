@@ -48,33 +48,41 @@ fn run(tx: mpsc::Sender<Event>) {
 
     if matches!(reply, Ok(Response::Handled)) {
         let mut read_event = event_socket.read_events();
-        while let Ok(event) = read_event() {
-            match event {
-                NiriEvent::WindowFocusChanged { id } => {
-                    if let Some(id) = id {
-                        // TODO: Window cache?
-                        let window = resolve_window(&mut query_socket, id);
-                        if let Some(w) = window {
-                            if tx.send(Event::ActiveWindowChanged(w.app_id)).is_err() {
-                                break;
+        loop {
+            match read_event() {
+                Ok(event) => {
+                    match event {
+                        NiriEvent::WindowFocusChanged { id } => {
+                            if let Some(id) = id {
+                                // TODO: Window cache?
+                                let window = resolve_window(&mut query_socket, id);
+                                if let Some(w) = window {
+                                    if tx.send(Event::ActiveWindowChanged(w.app_id)).is_err() {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                // TODO: Idle
+                                // tx.send(Event::Idle(true));
                             }
                         }
-                    } else {
-                        // TODO: Idle
-                        // tx.send(Event::Idle(true));
-                    }
-                }
-                NiriEvent::WorkspaceActivated { id, focused } => {
-                    if focused {
-                        if tx
-                            .send(Event::WorkspaceChanged(id.try_into().unwrap()))
-                            .is_err()
-                        {
-                            break;
+                        NiriEvent::WorkspaceActivated { id, focused } => {
+                            if focused {
+                                if tx
+                                    .send(Event::WorkspaceChanged(id.try_into().unwrap()))
+                                    .is_err()
+                                {
+                                    break;
+                                }
+                            }
                         }
+                        _ => {}
                     }
                 }
-                _ => {}
+                Err(e) => {
+                    eprintln!("niri event error: {:?}", e);
+                    continue;
+                }
             }
         }
     }
