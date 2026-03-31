@@ -62,7 +62,7 @@ fn simple_session() {
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(1);
 
-    assert_eq!(d.mgr.sessions().len(), 1);
+    assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn end_time_test() {
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(TIME);
 
-    assert_eq!(d.mgr.sessions()[0].utc_end, TIME);
+    assert_eq!(d.mgr.sessions()[0].utc_end, TIME, "Incorrect end time");
 }
 
 #[test]
@@ -91,9 +91,9 @@ fn session_data_test() {
 
     match &d.mgr.sessions()[0].state {
         State::Active { app_id, workspace } => {
-            assert_eq!(APP_ID, app_id);
-            assert_eq!(WORKSPACE, *workspace);
+            assert_eq!(APP_ID, app_id, "app_id not matching");
+            assert_eq!(WORKSPACE, *workspace, "workspace not matching");
         }
-        _ => panic!("Invalid state"),
+        _ => panic!("Incorrect state"),
     }
 }
