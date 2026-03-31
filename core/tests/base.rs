@@ -6,6 +6,7 @@
 
 use spyland_core::Clock;
 use spyland_core::Event;
+use spyland_core::SESSION_MANAGER_FLUSH_INTERVAL as FLUSH_INTERVAL;
 use spyland_core::SessionManager;
 use spyland_core::State;
 use std::cell::RefCell;
@@ -52,6 +53,11 @@ impl TestDriver {
     fn event(&mut self, ev: Event) {
         self.mgr.handle_event(ev);
     }
+
+    fn update_and_flush(&mut self) {
+        self.mgr.update();
+        self.mgr.flush();
+    }
 }
 
 #[test]
@@ -60,7 +66,7 @@ fn simple_session() {
 
     d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
-    d.tick(1);
+    d.update_and_flush();
 
     assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
 }
@@ -87,7 +93,7 @@ fn session_data_test() {
 
     d.event(Event::WorkspaceChanged(WORKSPACE));
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
-    d.tick(1);
+    d.update_and_flush();
 
     match &d.mgr.sessions()[0].state {
         State::Active { app_id, workspace } => {

@@ -33,7 +33,10 @@ pub struct SessionManager<C: Clock> {
     workspace: i32,
     clock: C,
     sessions: Vec<Session>,
+    last_flush: i64,
 }
+
+pub const SESSION_MANAGER_FLUSH_INTERVAL: i64 = 15;
 
 impl<C: Clock> SessionManager<C> {
     pub fn new(clock: C) -> Self {
@@ -42,6 +45,7 @@ impl<C: Clock> SessionManager<C> {
             workspace: -1,
             current: Session::new_empty(),
             sessions: Vec::new(),
+            last_flush: 0,
         }
     }
 
@@ -52,14 +56,15 @@ impl<C: Clock> SessionManager<C> {
                     return;
                 };
 
-                self.new_session();
+                self.close_session();
 
                 let now = self.clock.now();
+
                 self.current.utc_start = now;
                 self.current.state = State::Active {
-                    app_id: app_id,
+                    app_id,
                     workspace: self.workspace,
-                };
+                }
             }
             Event::WorkspaceChanged(id) => {
                 self.workspace = id;
@@ -68,16 +73,51 @@ impl<C: Clock> SessionManager<C> {
                 // TODO:
             }
             Event::Tick => {
-                self.current.utc_end = self.clock.now();
+                let now = self.clock.now();
+
+                self.update();
+
+                if now - self.last_flush >= SESSION_MANAGER_FLUSH_INTERVAL {
+                    self.flush();
+
+                    self.last_flush = now;
+                }
             }
         }
     }
 
-    fn new_session(&mut self) {
+    fn close_session(&mut self) {
         if !self.current.is_empty() {
+            self.current.utc_end = self.clock.now();
             self.sessions.push(self.current.clone());
+
             self.current = Session::new_empty();
         }
+    }
+
+    pub fn update(&mut self) {
+        if self.current.is_empty() {
+            return;
+        }
+
+        self.current.utc_end = self.clock.now();
+    }
+
+    pub fn flush(&mut self) {
+        if self.current.is_empty() {
+            return;
+        }
+
+        let current = self.current.clone();
+
+        if let Some(last) = self.sessions.last_mut() {
+            if last.state == current.state {
+                last.utc_end = current.utc_end;
+                return;
+            }
+        }
+
+        self.sessions.push(current);
     }
 
     pub fn sessions(&self) -> &Vec<Session> {
@@ -89,7 +129,7 @@ pub trait Clock {
     fn now(&self) -> i64;
 }
 
-#[derive(Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum State {
     Active {
         app_id: String,
