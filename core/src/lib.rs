@@ -79,6 +79,10 @@ impl<C: Clock> SessionManager<C> {
             self.current = Session::new_empty();
         }
     }
+
+    pub fn sessions(&self) -> &Vec<Session> {
+        &self.sessions
+    }
 }
 
 pub trait Clock {
