@@ -56,7 +56,7 @@ impl<C: Clock> SessionManager<C> {
                     return;
                 };
 
-                self.close_session();
+                self.new_session();
 
                 let now = self.clock.now();
 
@@ -86,7 +86,7 @@ impl<C: Clock> SessionManager<C> {
         }
     }
 
-    fn close_session(&mut self) {
+    fn new_session(&mut self) {
         if !self.current.is_empty() {
             self.current.utc_end = self.clock.now();
             self.sessions.push(self.current.clone());
