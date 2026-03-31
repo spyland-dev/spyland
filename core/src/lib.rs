@@ -58,9 +58,6 @@ impl<C: Clock> SessionManager<C> {
 
                 self.new_session();
 
-                let now = self.clock.now();
-
-                self.current.utc_start = now;
                 self.current.state = State::Active {
                     app_id,
                     workspace: self.workspace,
@@ -87,12 +84,15 @@ impl<C: Clock> SessionManager<C> {
     }
 
     fn new_session(&mut self) {
-        if !self.current.is_empty() {
-            self.current.utc_end = self.clock.now();
-            self.sessions.push(self.current.clone());
+        let now = self.clock.now();
 
-            self.current = Session::new_empty();
+        if !self.current.is_empty() {
+            self.current.utc_end = now;
+            self.sessions.push(self.current.clone());
         }
+
+        self.current = Session::new_empty();
+        self.current.utc_start = now;
     }
 
     pub fn update(&mut self) {
