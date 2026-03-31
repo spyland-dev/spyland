@@ -6,13 +6,27 @@
 
 use std::sync::mpsc::Receiver;
 
+#[derive(Clone)]
 pub struct Session {
-    utc_start: i64,
-    utc_end: i64,
+    pub utc_start: i64,
+    pub utc_end: i64,
 
-    state: State,
+    pub state: State,
 }
 
+impl Session {
+    pub fn new_empty() -> Self {
+        Self {
+            utc_start: 0,
+            utc_end: 0,
+            state: State::Idle,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.utc_start <= 0 && self.utc_end <= 0
+    }
+}
 pub enum State {
     Active {
         app_id: String,
