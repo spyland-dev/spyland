@@ -72,7 +72,7 @@ fn simple_session() {
 }
 
 #[test]
-fn end_time_test() {
+fn time_test() {
     let mut d = TestDriver::new();
 
     const TIME: i64 = 30;
@@ -80,7 +80,11 @@ fn end_time_test() {
     d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(TIME);
+    // d.update_and_flush();
+    // not needed because of automatic update()
+    // and refresh() in SessionManager
 
+    assert_eq!(d.mgr.sessions()[0].utc_start, 1, "Incorrect start time");
     assert_eq!(d.mgr.sessions()[0].utc_end, TIME, "Incorrect end time");
 }
 
