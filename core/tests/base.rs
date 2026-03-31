@@ -8,33 +8,38 @@ use spyland_core::Clock;
 use spyland_core::Event;
 use spyland_core::SessionManager;
 use spyland_core::State;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Clone, Copy)]
-pub struct FakeClock {
+struct FakeClock {
     pub now: i64,
 }
 
-impl Clock for FakeClock {
+#[derive(Clone)]
+struct SharedClock(pub Rc<RefCell<FakeClock>>);
+
+impl Clock for SharedClock {
     fn now(&self) -> i64 {
-        self.now
+        self.0.borrow().now
     }
 }
 
-impl FakeClock {
-    pub fn set(&mut self, t: i64) {
-        self.now = t;
+impl SharedClock {
+    fn set(&self, t: i64) {
+        self.0.borrow_mut().now = t;
     }
 }
 
 struct TestDriver {
-    mgr: SessionManager<FakeClock>,
-    clock: FakeClock,
+    mgr: SessionManager<SharedClock>,
+    clock: SharedClock,
 }
 
 impl TestDriver {
     fn new() -> Self {
-        let clock = FakeClock { now: 0 };
-        let mgr = SessionManager::new(clock);
+        let clock = SharedClock(Rc::new(RefCell::new(FakeClock { now: 1 })));
+        let mgr = SessionManager::new(clock.clone());
 
         Self { mgr, clock }
     }
