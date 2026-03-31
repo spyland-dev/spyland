@@ -19,7 +19,7 @@ impl Session {
         Self {
             utc_start: 0,
             utc_end: 0,
-            state: State::Idle,
+            state: State::Empty,
         }
     }
 
@@ -97,6 +97,7 @@ pub enum State {
         // activity: ???,
     },
     Idle,
+    Empty,
 }
 
 pub enum Event {

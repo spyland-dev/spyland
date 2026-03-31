@@ -89,6 +89,6 @@ fn session_data_test() {
             assert_eq!(APP_ID, app_id);
             assert_eq!(WORKSPACE, *workspace);
         }
-        State::Idle => panic!("Invalid state"),
+        _ => panic!("Invalid state"),
     }
 }
