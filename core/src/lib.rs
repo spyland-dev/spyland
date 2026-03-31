@@ -24,7 +24,7 @@ impl Session {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.utc_start <= 0 && self.utc_end <= 0
+        self.utc_start <= 0 && self.utc_end <= 0 && self.state == State::Empty
     }
 }
 
