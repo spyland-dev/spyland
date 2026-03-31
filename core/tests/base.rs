@@ -89,6 +89,17 @@ fn time_test() {
 }
 
 #[test]
+fn auto_flush_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::WorkspaceChanged(0));
+    d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
+    d.tick(FLUSH_INTERVAL);
+
+    assert_eq!(d.mgr.sessions().len(), 1, "Not one session");
+}
+
+#[test]
 fn session_data_test() {
     let mut d = TestDriver::new();
 
