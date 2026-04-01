@@ -52,16 +52,17 @@ impl<C: Clock> SessionManager<C> {
     pub fn handle_event(&mut self, event: Event) {
         match event {
             Event::ActiveWindowChanged(a) => {
-                let Some(app_id) = a else {
-                    return;
-                };
-
                 self.new_session();
 
-                self.current.state = State::Active {
-                    app_id,
-                    workspace: self.workspace,
-                }
+                self.current.state = match a {
+                    Some(app_id) => {
+                        State::Active {
+                            app_id,
+                            workspace: self.workspace,
+                        }
+                    }
+                    None => State::Idle
+        }
             }
             Event::WorkspaceChanged(id) => {
                 self.workspace = id;

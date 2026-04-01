@@ -118,3 +118,14 @@ fn session_data_test() {
         _ => panic!("Incorrect state"),
     }
 }
+
+#[test]
+fn simple_idle_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::WorkspaceChanged(0));
+    d.event(Event::ActiveWindowChanged(None));
+    d.update_and_flush();
+
+    assert_eq!(d.mgr.sessions()[0].state, State::Idle);
+}
