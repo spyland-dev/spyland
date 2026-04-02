@@ -44,6 +44,11 @@ impl TestDriver {
         self.mgr.handle_event(Event::Tick);
     }
 
+    fn advance(&mut self, t: i64) {
+        self.clock.0.borrow_mut().now += t;
+        self.mgr.handle_event(Event::Tick);
+    }
+
     fn event(&mut self, ev: Event) {
         self.mgr.handle_event(ev);
     }
@@ -122,4 +127,27 @@ fn simple_idle_test() {
     d.update_and_flush();
 
     assert_eq!(d.mgr.sessions()[0].state, State::Idle);
+}
+
+#[test]
+fn multiple_sessions_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::WorkspaceChanged(0));
+    d.event(Event::ActiveWindowChanged(Some("firefox".into())));
+    d.advance(10);
+
+    d.event(Event::WorkspaceChanged(0));
+    d.event(Event::ActiveWindowChanged(Some("kitty".into())));
+    d.advance(10);
+
+    d.event(Event::WorkspaceChanged(0));
+    d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
+    d.advance(10);
+
+    d.update_and_flush();
+
+    let sessions = d.mgr.sessions();
+
+    assert_eq!(sessions.len(), 3);
 }
