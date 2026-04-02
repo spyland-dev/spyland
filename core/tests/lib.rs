@@ -26,12 +26,6 @@ impl Clock for SharedClock {
     }
 }
 
-impl SharedClock {
-    fn set(&self, t: i64) {
-        self.0.borrow_mut().now = t;
-    }
-}
-
 struct TestDriver {
     mgr: SessionManager<SharedClock>,
     clock: SharedClock,
@@ -46,7 +40,7 @@ impl TestDriver {
     }
 
     fn tick(&mut self, t: i64) {
-        self.clock.set(t);
+        self.clock.0.borrow_mut().now = t;
         self.mgr.handle_event(Event::Tick);
     }
 
