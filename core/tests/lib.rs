@@ -4,60 +4,12 @@
  *  Licensed under the GNU General Public License v3.0
  */
 
-use spyland_core::Clock;
 use spyland_core::Event;
 use spyland_core::SESSION_MANAGER_FLUSH_INTERVAL as FLUSH_INTERVAL;
-use spyland_core::SessionManager;
 use spyland_core::State;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-#[derive(Clone, Copy)]
-struct FakeClock {
-    pub now: i64,
-}
-
-#[derive(Clone)]
-struct SharedClock(pub Rc<RefCell<FakeClock>>);
-
-impl Clock for SharedClock {
-    fn now(&self) -> i64 {
-        self.0.borrow().now
-    }
-}
-
-struct TestDriver {
-    mgr: SessionManager<SharedClock>,
-    clock: SharedClock,
-}
-
-impl TestDriver {
-    fn new() -> Self {
-        let clock = SharedClock(Rc::new(RefCell::new(FakeClock { now: 1 })));
-        let mgr = SessionManager::new(clock.clone());
-
-        Self { mgr, clock }
-    }
-
-    fn tick(&mut self, t: i64) {
-        self.clock.0.borrow_mut().now = t;
-        self.mgr.handle_event(Event::Tick);
-    }
-
-    fn advance(&mut self, t: i64) {
-        self.clock.0.borrow_mut().now += t;
-        self.mgr.handle_event(Event::Tick);
-    }
-
-    fn event(&mut self, ev: Event) {
-        self.mgr.handle_event(ev);
-    }
-
-    fn update_and_flush(&mut self) {
-        self.mgr.update();
-        self.mgr.flush();
-    }
-}
+mod common;
+use common::TestDriver;
 
 #[test]
 fn simple_session() {
