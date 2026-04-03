@@ -126,6 +126,54 @@ impl<C: Clock> SessionManager<C> {
     }
 }
 
+pub struct SessionAnalytics {
+    sessions: Vec<Session>,
+}
+
+impl SessionAnalytics {
+    pub fn new(sessions: Vec<Session>) -> Self {
+        Self {
+            sessions,
+        }
+    }
+
+    pub fn total_screen_time(&self) -> i64 {
+        let mut counter: i64 = 0;
+
+        for s in &self.sessions {
+            counter += s.utc_end - s.utc_start;
+        }
+
+        counter
+    }
+
+    pub fn screen_time_app(&self, target_app_id: String) -> i64 {
+        let mut counter: i64 = 0;
+
+        for s in &self.sessions {
+            if let State::Active { app_id, .. } = &s.state  {
+                if *app_id == target_app_id {
+                    counter += s.utc_end - s.utc_start;
+                }
+            }
+        }
+
+        counter
+    }
+
+    pub fn idle_time(&self) -> i64 {
+        let mut counter: i64 = 0;
+
+        for s in &self.sessions {
+            if let State::Idle = &s.state {
+                counter += s.utc_end - s.utc_start;
+            }
+        }
+
+        counter
+    }
+}
+
 pub trait Clock {
     fn now(&self) -> i64;
 }
