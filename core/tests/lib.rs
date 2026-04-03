@@ -23,7 +23,7 @@ fn simple_session() {
 }
 
 #[test]
-fn time_test() {
+fn session_time_test() {
     let mut d = TestDriver::new();
 
     const TIME: i64 = 30;
