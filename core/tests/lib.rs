@@ -89,11 +89,9 @@ fn multiple_sessions_test() {
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(10);
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("kitty".into())));
     d.advance(10);
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
     d.advance(10);
 
