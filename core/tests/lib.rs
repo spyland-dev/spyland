@@ -100,3 +100,43 @@ fn multiple_sessions_test() {
 
     assert_eq!(sessions.len(), 3);
 }
+
+#[test]
+fn direct_idle_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::Idle(true));
+    d.advance(5);
+
+    d.update_and_flush();
+
+    let sessions = d.mgr.sessions();
+
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0].state, State::Idle);
+}
+
+#[test]
+fn unidle_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::ActiveWindowChanged(Some(
+        "Terraria.bin.x86_64".into(),
+    )));
+    d.advance(5);
+
+    d.event(Event::Idle(true));
+    d.advance(5);
+
+    d.event(Event::Idle(false));
+    d.advance(5);
+
+    d.update_and_flush();
+
+    let sessions = d.mgr.sessions();
+
+    assert_eq!(sessions.len(), 3);
+    assert_eq!(sessions[0].state, sessions[2].state);
+    assert_eq!(sessions[2].utc_start, 11, "utc_start not matching");
+    assert_eq!(sessions[2].utc_end, 16, "utc_end not matching");
+}
