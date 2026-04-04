@@ -30,7 +30,7 @@ impl Session {
 
 pub struct SessionManager<C: Clock> {
     current: Session,
-    workspace: i32,
+    workspace: Option<i32>,
     clock: C,
     sessions: Vec<Session>,
     last_flush: i64,
@@ -42,7 +42,7 @@ impl<C: Clock> SessionManager<C> {
     pub fn new(clock: C) -> Self {
         Self {
             clock,
-            workspace: -1,
+            workspace: None,
             current: Session::new_empty(),
             sessions: Vec::new(),
             last_flush: 0,
@@ -65,7 +65,7 @@ impl<C: Clock> SessionManager<C> {
         }
             }
             Event::WorkspaceChanged(id) => {
-                self.workspace = id;
+                self.workspace = Some(id);
             }
             Event::Idle(_) => {
                 // TODO:
@@ -182,7 +182,7 @@ pub trait Clock {
 pub enum State {
     Active {
         app_id: String,
-        workspace: i32,
+        workspace: Option<i32>,
         // activity: ???,
     },
     Idle,

@@ -64,7 +64,7 @@ fn session_data_test() {
     match &d.mgr.sessions()[0].state {
         State::Active { app_id, workspace } => {
             assert_eq!(APP_ID, app_id, "app_id not matching");
-            assert_eq!(WORKSPACE, *workspace, "workspace not matching");
+            assert_eq!(WORKSPACE, workspace.expect("workspace is none"), "workspace not matching");
         }
         _ => panic!("Incorrect state"),
     }
