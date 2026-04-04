@@ -33,6 +33,7 @@ pub struct SessionManager<C: Clock> {
     workspace: Option<i32>,
     clock: C,
     sessions: Vec<Session>,
+    old_session: Option<Session>,
     last_flush: i64,
 }
 
@@ -43,6 +44,7 @@ impl<C: Clock> SessionManager<C> {
         Self {
             clock,
             workspace: None,
+            old_session: None,
             current: Session::new_empty(),
             sessions: Vec::new(),
             last_flush: 0,
@@ -67,8 +69,35 @@ impl<C: Clock> SessionManager<C> {
             Event::WorkspaceChanged(id) => {
                 self.workspace = Some(id);
             }
-            Event::Idle(_) => {
-                // TODO:
+            Event::Idle(idle) => {
+                if idle {
+                    if self.current.state == State::Idle {
+                        return;
+                    }
+
+                    if !self.current.is_empty() {
+                        self.update();
+                        self.old_session = Some(self.current.clone());
+                        self.flush();
+
+                        self.current = Session::new_empty();
+                    }
+
+                    self.current.utc_start = self.clock.now();
+                    self.current.state = State::Idle;
+                    self.update();
+                } else {
+                    if self.current.state != State::Idle {
+                        return;
+                    }
+
+                    self.new_session();
+                    
+                    self.current = self.old_session.clone().unwrap();
+                    let now = self.clock.now();
+                    self.current.utc_start = now;
+                    self.current.utc_end = now;
+                }
             }
             Event::Tick => {
                 let now = self.clock.now();
