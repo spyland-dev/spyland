@@ -14,7 +14,6 @@ use common::TestDriver;
 fn analytic_test() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("org.telegram.desktop".into())));
     d.advance(12);
 
@@ -37,7 +36,6 @@ fn analytic_app_time_test() {
 
     const APP_ID: &str = "org.gnome.Loupe";
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
     d.advance(16);
 
@@ -64,7 +62,6 @@ fn analytic_app_time_test() {
 fn analytic_idle_test() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("kitty".into())));
     d.advance(40);
 

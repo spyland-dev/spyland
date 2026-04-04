@@ -15,7 +15,6 @@ use common::TestDriver;
 fn simple_session() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.update_and_flush();
 
@@ -28,7 +27,6 @@ fn session_time_test() {
 
     const TIME: i64 = 30;
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(TIME);
     // d.update_and_flush();
@@ -43,7 +41,6 @@ fn session_time_test() {
 fn auto_flush_test() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
     d.tick(FLUSH_INTERVAL);
 
@@ -64,7 +61,11 @@ fn session_data_test() {
     match &d.mgr.sessions()[0].state {
         State::Active { app_id, workspace } => {
             assert_eq!(APP_ID, app_id, "app_id not matching");
-            assert_eq!(WORKSPACE, workspace.expect("workspace is none"), "workspace not matching");
+            assert_eq!(
+                WORKSPACE,
+                workspace.expect("workspace is none"),
+                "workspace not matching"
+            );
         }
         _ => panic!("Incorrect state"),
     }
@@ -74,7 +75,6 @@ fn session_data_test() {
 fn simple_idle_test() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(None));
     d.update_and_flush();
 
@@ -85,7 +85,6 @@ fn simple_idle_test() {
 fn multiple_sessions_test() {
     let mut d = TestDriver::new();
 
-    d.event(Event::WorkspaceChanged(0));
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(10);
 
