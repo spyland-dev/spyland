@@ -218,6 +218,7 @@ pub enum State {
     Empty,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Event {
     ActiveWindowChanged(Option<String>),
     WorkspaceChanged(i32),
