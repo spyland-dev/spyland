@@ -57,14 +57,12 @@ impl<C: Clock> SessionManager<C> {
                 self.new_session();
 
                 self.current.state = match a {
-                    Some(app_id) => {
-                        State::Active {
-                            app_id,
-                            workspace: self.workspace,
-                        }
-                    }
-                    None => State::Idle
-        }
+                    Some(app_id) => State::Active {
+                        app_id,
+                        workspace: self.workspace,
+                    },
+                    None => State::Idle,
+                }
             }
             Event::WorkspaceChanged(id) => {
                 self.workspace = Some(id);
@@ -92,7 +90,7 @@ impl<C: Clock> SessionManager<C> {
                     }
 
                     self.new_session();
-                    
+
                     self.current = self.old_session.clone().unwrap();
                     let now = self.clock.now();
                     self.current.utc_start = now;
@@ -161,9 +159,7 @@ pub struct SessionAnalytics {
 
 impl SessionAnalytics {
     pub fn new(sessions: Vec<Session>) -> Self {
-        Self {
-            sessions,
-        }
+        Self { sessions }
     }
 
     pub fn total_screen_time(&self) -> i64 {
@@ -180,7 +176,7 @@ impl SessionAnalytics {
         let mut counter: i64 = 0;
 
         for s in &self.sessions {
-            if let State::Active { app_id, .. } = &s.state  {
+            if let State::Active { app_id, .. } = &s.state {
                 if *app_id == target_app_id {
                     counter += s.utc_end - s.utc_start;
                 }
