@@ -113,11 +113,15 @@ impl TestDriver {
     pub fn new() -> Self {
         let server = Arc::new(Mutex::new(FakeNiriServer::new()));
 
-        unsafe {
-            std::env::set_var("NIRI_SOCKET", server.lock().unwrap().socket_path.path());
-        }
-
-        let mut backend = NiriBackend {};
+        let mut backend = NiriBackend::new(
+            server
+                .lock()
+                .unwrap()
+                .socket_path
+                .path()
+                .to_path_buf()
+                .clone(),
+        );
         let receiver = backend.subscribe();
 
         let server_clone = server.clone();
