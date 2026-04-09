@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+env_logger = "0.11.10"
+log = "0.4.29"
+spyland-backend-niri = { version = "0.1.0", path = "../niri" }
+spyland-core = { version = "0.1.0", path = "../core" }
