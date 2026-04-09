@@ -8,8 +8,8 @@ use std::sync::mpsc::Receiver;
 
 #[derive(Clone)]
 pub struct Session {
-    pub utc_start: i64,
-    pub utc_end: i64,
+    pub utc_start: u64,
+    pub utc_end: u64,
 
     pub state: State,
 }
@@ -34,10 +34,10 @@ pub struct SessionManager<C: Clock> {
     clock: C,
     sessions: Vec<Session>,
     old_session: Option<Session>,
-    last_flush: i64,
+    last_flush: u64,
 }
 
-pub const SESSION_MANAGER_FLUSH_INTERVAL: i64 = 15;
+pub const SESSION_MANAGER_FLUSH_INTERVAL: u64 = 15;
 
 impl<C: Clock> SessionManager<C> {
     pub fn new(clock: C) -> Self {
@@ -162,8 +162,8 @@ impl SessionAnalytics {
         Self { sessions }
     }
 
-    pub fn total_screen_time(&self) -> i64 {
-        let mut counter: i64 = 0;
+    pub fn total_screen_time(&self) -> u64 {
+        let mut counter: u64 = 0;
 
         for s in &self.sessions {
             counter += s.utc_end - s.utc_start;
@@ -172,8 +172,8 @@ impl SessionAnalytics {
         counter
     }
 
-    pub fn screen_time_app(&self, target_app_id: String) -> i64 {
-        let mut counter: i64 = 0;
+    pub fn screen_time_app(&self, target_app_id: String) -> u64 {
+        let mut counter: u64 = 0;
 
         for s in &self.sessions {
             if let State::Active { app_id, .. } = &s.state {
@@ -186,8 +186,8 @@ impl SessionAnalytics {
         counter
     }
 
-    pub fn idle_time(&self) -> i64 {
-        let mut counter: i64 = 0;
+    pub fn idle_time(&self) -> u64 {
+        let mut counter: u64 = 0;
 
         for s in &self.sessions {
             if let State::Idle = &s.state {
@@ -200,7 +200,7 @@ impl SessionAnalytics {
 }
 
 pub trait Clock {
-    fn now(&self) -> i64;
+    fn now(&self) -> u64;
 }
 
 #[derive(Debug, PartialEq, Clone)]

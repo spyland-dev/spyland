@@ -12,14 +12,14 @@ use std::rc::Rc;
 
 #[derive(Clone, Copy)]
 pub struct FakeClock {
-    pub now: i64,
+    pub now: u64,
 }
 
 #[derive(Clone)]
 pub struct SharedClock(pub Rc<RefCell<FakeClock>>);
 
 impl Clock for SharedClock {
-    fn now(&self) -> i64 {
+    fn now(&self) -> u64 {
         self.0.borrow().now
     }
 }
@@ -37,12 +37,12 @@ impl TestDriver {
         Self { mgr, clock }
     }
 
-    pub fn tick(&mut self, t: i64) {
+    pub fn tick(&mut self, t: u64) {
         self.clock.0.borrow_mut().now = t;
         self.mgr.handle_event(Event::Tick);
     }
 
-    pub fn advance(&mut self, t: i64) {
+    pub fn advance(&mut self, t: u64) {
         self.clock.0.borrow_mut().now += t;
         self.mgr.handle_event(Event::Tick);
     }
