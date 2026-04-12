@@ -4,6 +4,7 @@
  *  Licensed under the GNU General Public License v3.0
  */
 
+use log::{error, warn};
 use niri_ipc::socket::Socket;
 use niri_ipc::{Event as NiriEvent, Request, Response, Window};
 use spyland_core::{Backend, Event};
@@ -63,6 +64,7 @@ fn resolve_window(socket: &mut Socket, id: u64) -> Option<Window> {
 macro_rules! send_event {
     ($tx:expr, $event:expr) => {
         if $tx.send($event).is_err() {
+            error!("failed to send event");
             break;
         }
     };
@@ -106,7 +108,7 @@ fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
                     _ => {}
                 },
                 Err(e) => {
-                    eprintln!("niri event error: {:?}", e);
+                    warn!("{:?}", e);
                     continue;
                 }
             }

@@ -111,6 +111,8 @@ pub struct TestDriver {
 
 impl TestDriver {
     pub fn new() -> Self {
+        env_logger::init();
+
         let server = Arc::new(Mutex::new(FakeNiriServer::new()));
 
         let mut backend = NiriBackend::new(

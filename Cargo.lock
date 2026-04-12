@@ -424,6 +424,8 @@ version = "0.1.0"
 name = "spyland-backend-niri"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
+ "log",
  "niri-ipc",
  "serde_json",
  "spyland-core",
