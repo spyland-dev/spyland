@@ -60,6 +60,14 @@ fn resolve_window(socket: &mut Socket, id: u64) -> Option<Window> {
     None
 }
 
+macro_rules! send_event {
+    ($tx:expr, $event:expr) => {
+        if $tx.send($event).is_err() {
+            break;
+        }
+    };
+}
+
 fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
     let connect = || {
         socket_path
@@ -83,25 +91,16 @@ fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
                         Some(id) => {
                             let window = resolve_window(&mut query_socket, id);
                             if let Some(w) = window {
-                                if tx.send(Event::ActiveWindowChanged(w.app_id)).is_err() {
-                                    break;
-                                }
+                                send_event!(tx, Event::ActiveWindowChanged(w.app_id));
                             }
                         }
                         None => {
-                            if tx.send(Event::ActiveWindowChanged(None)).is_err() {
-                                break;
-                            }
+                            send_event!(tx, Event::ActiveWindowChanged(None));
                         }
                     },
                     NiriEvent::WorkspaceActivated { id, focused } => {
                         if focused {
-                            if tx
-                                .send(Event::WorkspaceChanged(id.try_into().unwrap()))
-                                .is_err()
-                            {
-                                break;
-                            }
+                            send_event!(tx, Event::WorkspaceChanged(id.try_into().unwrap()))
                         }
                     }
                     _ => {}
