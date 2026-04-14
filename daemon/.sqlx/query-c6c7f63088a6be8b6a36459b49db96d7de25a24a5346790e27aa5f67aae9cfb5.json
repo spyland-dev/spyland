@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            CREATE TABLE IF NOT EXISTS sessions (\n                start INTEGER NOT NULL,\n                end INTEGER NOT NULL,\n\n                is_active BOOLEAN NOT NULL,\n\n                app_id TEXT,\n                workspace INTEGER\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "c6c7f63088a6be8b6a36459b49db96d7de25a24a5346790e27aa5f67aae9cfb5"
+}

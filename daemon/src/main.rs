@@ -14,9 +14,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::app::App;
+use crate::{app::App, db::Db};
 
 mod app;
+mod db;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -42,9 +43,12 @@ async fn main() -> Result<()> {
     }
 
     let app = App::new(
-        SqliteConnectOptions::new()
-            .filename(format!("{}/sessions.sqlite", state_path.display()))
-            .create_if_missing(true),
+        Db::new(
+            SqliteConnectOptions::new()
+                .filename(format!("{}/sessions.sqlite", state_path.display()))
+                .create_if_missing(true),
+        )
+        .await?,
         SystemClock {},
     )
     .await?;

@@ -7,54 +7,41 @@
 use std::sync::mpsc::Receiver;
 
 use spyland_backend_niri::NiriBackend;
-use spyland_core::{Backend, Clock, Event, SessionManager};
-use sqlx::SqlitePool;
-use sqlx::sqlite::SqliteConnectOptions;
+use spyland_core::{Backend, Clock, Event, Response, SessionManager};
 
 use anyhow::{Context, Result};
+
+use crate::db::Db;
 
 pub struct App<C: Clock> {
     receiver: Receiver<Event>,
     session_manager: SessionManager<C>,
-    db_pool: SqlitePool,
+    db: Db,
 }
 
 impl<C: Clock> App<C> {
-    pub async fn new(sqlite_options: SqliteConnectOptions, clock: C) -> Result<Self> {
+    pub async fn new(db: Db, clock: C) -> Result<Self> {
         let mut backend = new_backend().context("No backend is available")?;
 
-        let db_pool = SqlitePool::connect_with(sqlite_options)
-            .await
-            .context("Failed to connect to database")?;
-
-        sqlx::query(
-            "
-            CREATE TABLE IF NOT EXISTS sessions (
-                start INTEGER NOT NULL,
-                end INTEGER NOT NULL,
-
-                is_active BOOLEAN NOT NULL,
-
-                app_id TEXT,
-                workspace INTEGER
-            )
-            ",
-        )
-        .fetch_all(&db_pool)
-        .await
-        .context("Failed to create database")?;
+        db.create().await.context("Failed to create database")?;
 
         Ok(Self {
             receiver: backend.subscribe(),
             session_manager: SessionManager::new(clock),
-            db_pool,
+            db,
         })
     }
 
     pub async fn event_handler(mut self) -> Result<()> {
         for event in self.receiver {
             println!("{:?}", event);
-            self.session_manager.handle_event(event);
+            let response = self.session_manager.handle_event(event);
+
+            if matches!(response, Response::Flush) {
+                let session = self.session_manager.sessions().last().unwrap();
+
+                self.db.insert(session.clone()).await?;
+            }
         }
 
         Ok(())
