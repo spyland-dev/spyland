@@ -4,29 +4,25 @@
  *  Licensed under the GNU General Public License v3.0
  */
 
+use anyhow::{Context, Result};
+use log::{debug, info, warn};
+use spyland_core::Clock;
+use sqlx::sqlite::SqliteConnectOptions;
 use std::{
     env,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{Context, Result};
-use log::{debug, info, warn};
+use crate::app::App;
 
-use spyland_backend_niri::NiriBackend;
-use spyland_core::{Backend, Clock, SessionManager};
-use sqlx::{SqlitePool, sqlite::SqliteConnectOptions};
+mod app;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
 
     info!("Starting spyland daemon...");
-
-    let mut backend = new_backend().context("No backend is available")?;
-    let receiver = backend.subscribe();
-    let system_clock = SystemClock {};
-    let mut session_manager = SessionManager::new(system_clock);
 
     let state_path = match env::var("XDG_STATE_HOME") {
         Ok(dir) => PathBuf::from(dir),
@@ -45,35 +41,15 @@ async fn main() -> Result<()> {
         std::fs::create_dir_all(&state_path).context("Failed to create state dir")?;
     }
 
-    let pool = SqlitePool::connect_with(
+    let app = App::new(
         SqliteConnectOptions::new()
             .filename(format!("{}/sessions.sqlite", state_path.display()))
             .create_if_missing(true),
+        SystemClock {},
     )
-    .await
-    .context("Failed to connect to database")?;
+    .await?;
 
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS sessions (
-            start INTEGER NOT NULL,
-            end INTEGER NOT NULL,
-
-            is_active BOOLEAN NOT NULL,
-
-            app_id TEXT,
-            workspace INTEGER
-        )",
-    )
-    .fetch_all(&pool)
-    .await
-    .context("Failed to create database")?;
-
-    for event in receiver {
-        println!("{:?}", event);
-        session_manager.handle_event(event);
-    }
-
-    Ok(())
+    app.event_handler().await
 }
 
 struct SystemClock;
@@ -85,16 +61,4 @@ impl Clock for SystemClock {
             .expect("time went backwards")
             .as_secs()
     }
-}
-
-fn new_backend() -> Option<Box<dyn Backend>> {
-    let backends: Vec<Box<dyn Backend>> = vec![Box::new(NiriBackend::default())];
-
-    for backend in backends {
-        if backend.is_available() {
-            return Some(backend);
-        }
-    }
-
-    None
 }
