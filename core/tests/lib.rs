@@ -140,3 +140,28 @@ fn unidle_test() {
     assert_eq!(sessions[2].utc_start, 11, "utc_start not matching");
     assert_eq!(sessions[2].utc_end, 16, "utc_end not matching");
 }
+
+#[test]
+fn session_merge_test() {
+    let mut d = TestDriver::new();
+
+    d.event(Event::ActiveWindowChanged(Some(
+        "org.telegram.desktop".into(),
+    )));
+    d.tick(1);
+
+    for i in 1..4 {
+        d.advance(FLUSH_INTERVAL);
+        d.update_and_flush();
+
+        let sessions = d.mgr.sessions();
+
+        assert_eq!(sessions.len(), 1, "not one session");
+        assert_eq!(sessions[0].utc_start, 1, "invalid utc_start");
+        assert_eq!(
+            sessions[0].utc_end,
+            1 + FLUSH_INTERVAL * i,
+            "invalid utc_end"
+        );
+    }
+}
