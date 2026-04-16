@@ -19,7 +19,7 @@ use crate::{app::App, db::Db};
 mod app;
 mod db;
 
-#[tokio::main]
+#[tokio::main(flavor = "local")]
 async fn main() -> Result<()> {
     env_logger::init();
 
@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    app.event_handler().await
+    app.run().await
 }
 
 struct SystemClock;

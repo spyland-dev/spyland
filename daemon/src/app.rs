@@ -4,18 +4,22 @@
  *  Licensed under the GNU General Public License v3.0
  */
 
-use std::sync::mpsc::Receiver;
+use std::{
+    sync::{Arc, Mutex, mpsc::Receiver},
+    time::Duration,
+};
 
 use spyland_backend_niri::NiriBackend;
 use spyland_core::{Backend, Clock, Event, Response, SessionManager};
 
 use anyhow::{Context, Result};
+use tokio::time::interval;
 
 use crate::db::Db;
 
 pub struct App<C: Clock> {
     receiver: Receiver<Event>,
-    session_manager: SessionManager<C>,
+    session_manager: Arc<Mutex<SessionManager<C>>>,
     db: Db,
 }
 
@@ -27,24 +31,54 @@ impl<C: Clock> App<C> {
 
         Ok(Self {
             receiver: backend.subscribe(),
-            session_manager: SessionManager::new(clock),
+            session_manager: Arc::new(Mutex::new(SessionManager::new(clock))),
             db,
         })
     }
+}
 
-    pub async fn event_handler(mut self) -> Result<()> {
-        for event in self.receiver {
-            println!("{:?}", event);
-            let response = self.session_manager.handle_event(event);
+impl<C: Clock + Send + 'static> App<C> {
+    pub async fn run(self) -> Result<()> {
+        let sm = self.session_manager.clone();
+        let rx = self.receiver;
+        let event_task = tokio::task::spawn_blocking(move || {
+            Self::event_handler(sm, rx);
+        });
 
-            if matches!(response, Response::Flush) {
-                let session = self.session_manager.sessions().last().unwrap();
+        let sm = self.session_manager.clone();
+        let db = self.db;
+        let tick_task = tokio::task::spawn_local(async move {
+            Self::tick_handler(sm, db).await;
+        });
 
-                self.db.insert(session.clone().into()).await?;
-            }
-        }
+        tokio::try_join!(event_task, tick_task)?;
 
         Ok(())
+    }
+
+    fn event_handler(session_manager: Arc<Mutex<SessionManager<C>>>, receiver: Receiver<Event>) {
+        for event in receiver {
+            session_manager.lock().unwrap().handle_event(event);
+        }
+    }
+
+    async fn tick_handler(session_manager: Arc<Mutex<SessionManager<C>>>, database: Db) {
+        let mut timer = interval(Duration::from_secs(1));
+
+        loop {
+            timer.tick().await;
+            let mut sm_lock = session_manager.lock().unwrap();
+            let response = sm_lock.handle_event(Event::Tick);
+
+            if matches!(response, Response::Flush)
+                && let Some(session) = sm_lock.sessions().last()
+            {
+                database
+                    .insert(session.clone().into())
+                    .await
+                    .expect("Write to database failed");
+            }
+        }
     }
 }
 
