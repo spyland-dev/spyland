@@ -42,10 +42,17 @@ async fn main() -> Result<()> {
         std::fs::create_dir_all(&state_path).context("Failed to create state dir")?;
     }
 
+    let filename = if cfg!(debug_assertions) {
+        warn!("Running in DEBUG version! Using separate database file.");
+        "sessions-debug.sqlite"
+    } else {
+        "sessions.sqlite"
+    };
+
     let app = App::new(
         Db::new(
             SqliteConnectOptions::new()
-                .filename(format!("{}/sessions.sqlite", state_path.display()))
+                .filename(format!("{}/{filename}", state_path.display()))
                 .create_if_missing(true),
         )
         .await?,
