@@ -6,7 +6,10 @@
 
 use anyhow::Result;
 use spyland_core::{Session, State};
-use sqlx::{SqlitePool, query, sqlite::SqliteConnectOptions};
+use sqlx::{
+    SqlitePool, query,
+    sqlite::{SqliteConnectOptions, SqliteQueryResult},
+};
 
 pub struct Db {
     pool: SqlitePool,
@@ -39,23 +42,22 @@ impl Db {
         Ok(())
     }
 
-    pub async fn insert(&self, session: Session) -> Result<()> {
-        let s: SessionSql = session.into();
-        query!(
+    pub async fn insert(&self, session: SessionSql) -> Result<SqliteQueryResult> {
+        let result = query!(
             "
             INSERT INTO sessions (start, end, is_active, app_id, workspace)
             VALUES (?1, ?2, ?3, ?4, ?5)
             ",
-            s.start,
-            s.end,
-            s.is_active,
-            s.app_id,
-            s.workspace,
+            session.start,
+            session.end,
+            session.is_active,
+            session.app_id,
+            session.workspace,
         )
-        .fetch_all(&self.pool)
+        .execute(&self.pool)
         .await?;
 
-        Ok(())
+        Ok(result)
     }
 }
 

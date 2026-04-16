@@ -40,7 +40,7 @@ impl<C: Clock> App<C> {
             if matches!(response, Response::Flush) {
                 let session = self.session_manager.sessions().last().unwrap();
 
-                self.db.insert(session.clone()).await?;
+                self.db.insert(session.clone().into()).await?;
             }
         }
 
