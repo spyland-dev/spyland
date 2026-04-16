@@ -125,3 +125,113 @@ impl From<SessionSql> for Session {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use spyland_core::{Session, State};
+    use sqlx::{SqlitePool, query};
+
+    use crate::db::{Db, SessionSql};
+
+    #[sqlx::test]
+    async fn create_test(pool: SqlitePool) {
+        let db = Db { pool };
+
+        db.create().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn insert_test(pool: SqlitePool) {
+        let db = Db { pool };
+
+        db.create().await.unwrap();
+
+        let session = Session {
+            utc_start: 1,
+            utc_end: 16,
+            state: State::Active {
+                app_id: "example_test_app_id".into(),
+                workspace: None,
+            },
+        };
+
+        let result = db.insert(session.into()).await.unwrap();
+
+        assert_eq!(result.rows_affected(), 1);
+    }
+
+    #[sqlx::test]
+    async fn insert_integrity_test(pool: SqlitePool) {
+        let db = Db { pool };
+
+        db.create().await.unwrap();
+
+        const START: u64 = 1;
+        const END: u64 = 31;
+        const APP_ID: &str = "steam";
+        const WORKSPACE: i32 = 3;
+
+        let session = Session {
+            utc_start: START,
+            utc_end: END,
+            state: State::Active {
+                app_id: APP_ID.into(),
+                workspace: Some(WORKSPACE),
+            },
+        };
+
+        let result = db.insert(session.into()).await.unwrap();
+
+        assert_eq!(result.rows_affected(), 1);
+
+        let result = query!("SELECT * FROM sessions")
+            .fetch_one(&db.pool)
+            .await
+            .unwrap();
+
+        assert_eq!(result.start, START as i64);
+        assert_eq!(result.end, END as i64);
+        assert_eq!(result.is_active, true);
+        assert_eq!(result.app_id, Some(APP_ID.into()));
+        assert_eq!(result.workspace, Some(WORKSPACE as i64));
+    }
+
+    #[test]
+    fn session_mapping_test() {
+        const START: u64 = 1;
+        const END: u64 = 16;
+
+        const APP_ID: &str = "example_test_app_id";
+        const WORKSPACE: i32 = 2;
+
+        let session = Session {
+            utc_start: START,
+            utc_end: END,
+
+            state: State::Active {
+                app_id: APP_ID.into(),
+                workspace: Some(WORKSPACE),
+            },
+        };
+
+        let session_sql: SessionSql = session.into();
+
+        assert_eq!(session_sql.start, START as i64);
+        assert_eq!(session_sql.end, END as i64);
+        assert_eq!(session_sql.is_active, true);
+        assert_eq!(session_sql.app_id, Some(APP_ID.into()));
+        assert_eq!(session_sql.workspace, Some(WORKSPACE));
+
+        let session2: Session = session_sql.into();
+
+        assert_eq!(session2.utc_start, START);
+        assert_eq!(session2.utc_end, END);
+        assert!(matches!(
+            session2.state,
+            State::Active {
+                app_id,
+                workspace: Some(WORKSPACE),
+            } if app_id == APP_ID
+        ));
+    }
+}
