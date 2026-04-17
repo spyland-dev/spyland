@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use std::path::Path;
+
 use anyhow::Result;
 use spyland_core::{Session, State};
 use sqlx::{
@@ -17,9 +19,29 @@ pub struct Db {
 }
 
 impl Db {
-    pub async fn new(options: SqliteConnectOptions) -> Result<Self> {
+    pub async fn from_options(options: SqliteConnectOptions) -> Result<Self> {
         Ok(Self {
             pool: SqlitePool::connect_with(options).await?,
+        })
+    }
+
+    pub async fn open(path: impl AsRef<Path>, create_if_missing: bool) -> Result<Self> {
+        Ok(Self {
+            pool: SqlitePool::connect_with(
+                SqliteConnectOptions::new()
+                    .filename(path)
+                    .create_if_missing(create_if_missing),
+            )
+            .await?,
+        })
+    }
+
+    pub async fn open_readonly(path: impl AsRef<Path>) -> Result<Self> {
+        Ok(Self {
+            pool: SqlitePool::connect_with(
+                SqliteConnectOptions::new().filename(path).read_only(true),
+            )
+            .await?,
         })
     }
 

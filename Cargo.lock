@@ -1320,7 +1320,6 @@ dependencies = [
  "spyland-backend-niri",
  "spyland-core",
  "spyland-lib",
- "sqlx",
  "tokio",
 ]
 

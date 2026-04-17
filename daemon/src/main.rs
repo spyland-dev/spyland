@@ -8,7 +8,6 @@
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
 use spyland_core::Clock;
-use sqlx::sqlite::SqliteConnectOptions;
 use std::{
     env,
     path::PathBuf,
@@ -51,12 +50,7 @@ async fn main() -> Result<()> {
     };
 
     let app = App::new(
-        Db::new(
-            SqliteConnectOptions::new()
-                .filename(format!("{}/{filename}", state_path.display()))
-                .create_if_missing(true),
-        )
-        .await?,
+        Db::open(format!("{}/{filename}", state_path.display()), true).await?,
         SystemClock {},
     )
     .await?;
