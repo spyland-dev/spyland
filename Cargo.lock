@@ -1305,6 +1305,8 @@ dependencies = [
  "anyhow",
  "serde",
  "serde_json",
+ "spyland-core",
+ "sqlx",
  "tempfile",
 ]
 
@@ -1317,6 +1319,7 @@ dependencies = [
  "log",
  "spyland-backend-niri",
  "spyland-core",
+ "spyland-lib",
  "sqlx",
  "tokio",
 ]

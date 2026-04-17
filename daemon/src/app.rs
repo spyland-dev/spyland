@@ -16,7 +16,7 @@ use spyland_core::{Backend, Clock, Event, Response, SessionManager};
 use anyhow::{Context, Result};
 use tokio::time::interval;
 
-use crate::db::Db;
+use spyland_lib::db::Db;
 
 pub struct App<C: Clock> {
     receiver: Receiver<Event>,

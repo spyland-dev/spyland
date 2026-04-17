@@ -15,10 +15,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{app::App, db::Db};
+use crate::app::App;
+use spyland_lib::db::Db;
 
 mod app;
-mod db;
 
 #[tokio::main(flavor = "local")]
 async fn main() -> Result<()> {
