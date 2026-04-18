@@ -5,22 +5,35 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+//! Module that defines IPC protocol guidelines.
+
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
+/// Request from the client.
+///
+/// Uses to request action for the server.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Request {
+    /// A simple request that means checking the connection.
     Ping,
 }
 
+/// Response from the server.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Response {
+    /// A simple response that means connection is works.
     Pong,
 }
 
+/// Low-level function, used to send `serializable` to `stream`.
+///
+/// # Arguments
+/// * `stream` --- stream to send
+/// * `serializable` --- data for send
 pub fn send<T: Serialize>(stream: &UnixStream, serializable: T) -> Result<()> {
     let json = serde_json::to_string(&serializable)?;
     let mut writer = stream;
@@ -28,6 +41,10 @@ pub fn send<T: Serialize>(stream: &UnixStream, serializable: T) -> Result<()> {
     Ok(())
 }
 
+/// Low-level function, used to read `T` from the `stream`.
+///
+/// # Arguments
+/// * `stream` --- stream to read
 pub fn read<T: DeserializeOwned>(stream: &UnixStream) -> Result<T> {
     let mut json = String::new();
     let mut reader = BufReader::new(stream);

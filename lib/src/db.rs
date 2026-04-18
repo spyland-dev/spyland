@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+//! Module to work with spyland database.
+
 use std::path::Path;
 
 use anyhow::Result;
@@ -14,17 +16,57 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteQueryResult},
 };
 
+/// Useful wrapper to manage database.
+///
+/// # Example
+/// ```ignore
+/// # #[tokio::main]
+/// # async fn main() -> Result<()> {
+/// // Opens database file
+/// let db = Db::open("/path/to/database.sqlite").await?;
+///
+/// db.create().await?; // Creating if not exists
+///
+/// let session: Session;
+/// db.insert(session.into()).await?; // Inserting session
+/// # }
+/// ```
 pub struct Db {
     pool: SqlitePool,
 }
 
 impl Db {
+    /// Creates [`Db`] from [`SqliteConnectOptions`].
+    ///
+    /// # Example
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// let db = Db::from_options(
+    ///     SqliteConnectOptions::new()
+    ///         .in_memory()
+    /// ).await?;
+    /// # }
+    /// ```
     pub async fn from_options(options: SqliteConnectOptions) -> Result<Self> {
         Ok(Self {
             pool: SqlitePool::connect_with(options).await?,
         })
     }
 
+    /// Opens database by its path.
+    ///
+    /// # Arguments
+    /// * `path` --- path to the SQLite database file
+    /// * `create_if_missing` --- creates file if its missing
+    ///
+    /// # Example
+    /// ```ignore
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// let db = Db::open("/path/to/database.sqlite").await?;
+    /// # }
+    /// ```
     pub async fn open(path: impl AsRef<Path>, create_if_missing: bool) -> Result<Self> {
         Ok(Self {
             pool: SqlitePool::connect_with(
@@ -36,6 +78,15 @@ impl Db {
         })
     }
 
+    /// Read-only opens database by its path.
+    ///
+    /// # Example
+    /// ```ignore
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// let db = Db::open_readonly("/path/to/database.sqlite")
+    /// # }
+    /// ```
     pub async fn open_readonly(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
             pool: SqlitePool::connect_with(
@@ -45,6 +96,19 @@ impl Db {
         })
     }
 
+    /// Creates table if not exists.
+    ///
+    /// # Example
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// # let db = Db::from_options(
+    /// #     SqliteConnectOptions::new()
+    /// #         .in_memory()
+    /// # ).await?;
+    /// db.create().await?;
+    /// # }
+    /// ```
     pub async fn create(&self) -> Result<()> {
         query!(
             "
@@ -65,6 +129,28 @@ impl Db {
         Ok(())
     }
 
+    /// Inserts [`SessionSql`] to the table.
+    ///
+    /// # Example
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// # let db = Db::from_options(
+    /// #     SqliteConnectOptions::new()
+    /// #         .in_memory()
+    /// # ).await?;
+    /// db.create().await?;
+    ///
+    /// # let session = Session {
+    /// #   utc_start: 0,
+    /// #   utc_end: 15,
+    /// #   state: State::Idle,
+    /// # };
+    ///
+    /// // Don't forget `.into()`!
+    /// db.insert(session.into()).await?;
+    /// # }
+    /// ```
     pub async fn insert(&self, session: SessionSql) -> Result<SqliteQueryResult> {
         let result = query!(
             "
@@ -84,13 +170,33 @@ impl Db {
     }
 }
 
+/// A database representation for [`Session`].
+///
+/// Used to convert and store [`Session`] data in SQLite.
 pub struct SessionSql {
+    /// Start time in seconds
     pub start: i64,
+    /// End time in seconds
     pub end: i64,
 
+    /// Is active session
+    ///
+    /// This field determines some other fields:
+    /// - [`SessionSql::app_id`] will only have a value ([`Some`]) if this field equals `true`.
+    /// - [`SessionSql::workspace`] will never have a value ([`None`]) if this field equals
+    /// `false`.
+    /// See more documentation for these fields.
     pub is_active: bool,
 
+    /// Application identifier.
+    ///
+    /// Only [`Some`] if this is an active session.
+    /// See [`SessionSql::is_active`]
     pub app_id: Option<String>,
+    /// Workspace number.
+    ///
+    /// Unlike [`SessionSql::app_id`], it may be [`None`] even if [`SessionSql::is_active`] equals
+    /// `true`, because of some compositors may not have workspaces at all (see [`State`]).
     pub workspace: Option<i32>,
 }
 

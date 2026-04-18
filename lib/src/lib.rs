@@ -5,5 +5,14 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+//! Public library API for spyland.
+//!
+//! There are two modules: [`db`] and [`ipc`].
+//! You can use [`db`] for accessing spyland database, and
+//! [`ipc`] to communicate with spylandd (daemon).
+
+#![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
+
 pub mod db;
 pub mod ipc;
