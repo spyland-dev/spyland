@@ -19,7 +19,7 @@ use sqlx::{
 /// Useful wrapper to manage database.
 ///
 /// # Example
-/// ```ignore
+/// ```no_run
 /// # #[tokio::main]
 /// # async fn main() -> Result<()> {
 /// // Opens database file
@@ -61,7 +61,7 @@ impl Db {
     /// * `create_if_missing` --- creates file if its missing
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
     /// let db = Db::open("/path/to/database.sqlite").await?;
@@ -81,7 +81,7 @@ impl Db {
     /// Read-only opens database by its path.
     ///
     /// # Example
-    /// ```ignore
+    /// ```no_run
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
     /// let db = Db::open_readonly("/path/to/database.sqlite")
