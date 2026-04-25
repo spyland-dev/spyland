@@ -12,7 +12,7 @@ use std::path::Path;
 use anyhow::Result;
 use spyland_core::{Session, State};
 use sqlx::{
-    SqlitePool, query,
+    SqlitePool, query, query_as,
     sqlite::{SqliteConnectOptions, SqliteQueryResult},
 };
 
@@ -168,6 +168,13 @@ impl Db {
 
         Ok(result)
     }
+
+    /// Returns all elements from the table.
+    pub async fn query_all(&self) -> Result<Vec<SessionSql>> {
+        Ok(query_as!(SessionSql, "SELECT * FROM sessions")
+            .fetch_all(&self.pool)
+            .await?)
+    }
 }
 
 /// A database representation for [`Session`].
@@ -197,14 +204,14 @@ pub struct SessionSql {
     ///
     /// Unlike [`SessionSql::app_id`], it may be [`None`] even if [`SessionSql::is_active`] equals
     /// `true`, because of some compositors may not have workspaces at all (see [`State`]).
-    pub workspace: Option<i32>,
+    pub workspace: Option<i64>,
 }
 
 impl From<Session> for SessionSql {
     fn from(session: Session) -> Self {
         let is_active: bool;
         let app_id: Option<String>;
-        let workspace: Option<i32>;
+        let workspace: Option<i64>;
 
         if let State::Active {
             app_id: a,
@@ -213,7 +220,10 @@ impl From<Session> for SessionSql {
         {
             is_active = true;
             app_id = Some(a);
-            workspace = w;
+            workspace = match w {
+                Some(i) => Some(i as i64),
+                None => None,
+            };
         } else {
             is_active = false;
             app_id = None;
@@ -241,7 +251,10 @@ impl From<SessionSql> for Session {
 
                 state: State::Active {
                     app_id: value.app_id.unwrap(),
-                    workspace: value.workspace,
+                    workspace: match value.workspace {
+                        Some(i) => Some(i as i32),
+                        None => None,
+                    },
                 },
             }
         } else {
@@ -349,7 +362,7 @@ mod tests {
         assert_eq!(session_sql.end, END as i64);
         assert_eq!(session_sql.is_active, true);
         assert_eq!(session_sql.app_id, Some(APP_ID.into()));
-        assert_eq!(session_sql.workspace, Some(WORKSPACE));
+        assert_eq!(session_sql.workspace, Some(WORKSPACE as i64));
 
         let session2: Session = session_sql.into();
 
