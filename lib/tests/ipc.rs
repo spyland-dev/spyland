@@ -1,5 +1,5 @@
 use spyland_lib::ipc::{
-    IpcClient, IpcServer,
+    IpcClient, IpcConnection, IpcServer,
     protocol::{Request, Response},
 };
 use std::path::PathBuf;
@@ -17,17 +17,13 @@ fn temp_socket_path() -> PathBuf {
 
 fn spawn_server<F>(path: PathBuf, handler: F) -> thread::JoinHandle<()>
 where
-    F: FnOnce(IpcServer) + Send + 'static,
+    F: FnOnce(IpcConnection) + Send + 'static,
 {
     thread::spawn(move || {
-        let server = IpcServer::new(path).expect("Failed to create server");
+        let mut server = IpcServer::new(path).expect("Failed to create server");
+        let connection = server.accept().expect("Failed to accept connection");
 
-        server
-            .stream()
-            .set_read_timeout(Some(Duration::from_secs(2)))
-            .expect("Failed to set read timeout");
-
-        handler(server)
+        handler(connection)
     })
 }
 
@@ -35,11 +31,11 @@ where
 fn test_client_server_ping() {
     let path = temp_socket_path();
 
-    let server_handle = spawn_server(path.clone(), |server| {
-        let request = server.read().expect("Failed to read from client");
+    let server_handle = spawn_server(path.clone(), |connection| {
+        let request = connection.read().expect("Failed to read from client");
         assert_eq!(request, Request::Ping, "Expected Ping request");
 
-        server
+        connection
             .send(Response::Pong)
             .expect("Failed to send response");
     });
@@ -62,14 +58,14 @@ fn test_client_server_ping() {
 fn test_multiple_messages() {
     let path = temp_socket_path();
 
-    let server_handle = spawn_server(path.clone(), |server| {
+    let server_handle = spawn_server(path.clone(), |connection| {
         for i in 0..3 {
-            let request = server
+            let request = connection
                 .read()
                 .expect(&format!("Failed to read message {}", i));
             assert_eq!(request, Request::Ping, "Message {} mismatch", i);
 
-            server
+            connection
                 .send(Response::Pong)
                 .expect(&format!("Failed to send response {}", i));
         }

@@ -19,26 +19,38 @@ use self::protocol::{Request, Response};
 pub mod protocol;
 
 /// Simple IPC server.
-/// [Reads](IpcServer::read) [`Request`]s, [Sends](IpcServer::send) [`Response`]s.
+/// [Accepts](`Self::accept`) [`IpcConnection`]s
 /// Should only be using in the daemon.
 pub struct IpcServer {
-    stream: UnixStream,
+    listener: UnixListener,
 }
 
 impl IpcServer {
     /// Creates new instance of [`IpcServer`]. Binds `path` as a socket.
     pub fn new(path: PathBuf) -> Result<Self> {
         let listener = UnixListener::bind(path)?;
-        let (stream, _addr) = listener.accept()?;
 
-        Ok(Self { stream })
+        Ok(Self { listener })
     }
 
-    /// Returns [`UnixStream`] of this server.
-    pub fn stream(&self) -> &UnixStream {
-        &self.stream
-    }
+    /// Accepts a new connection to server socket.
+    ///
+    /// <div class="warning">That will block this thread until socket gets a client!</div>
+    ///
+    /// See [`UnixListener::accept`]
+    pub fn accept(&mut self) -> Result<IpcConnection> {
+        let (stream, _addr) = self.listener.accept()?;
 
+        Ok(IpcConnection { stream })
+    }
+}
+
+/// A connection to the [`IpcServer`].
+pub struct IpcConnection {
+    stream: UnixStream,
+}
+
+impl IpcConnection {
     /// Sends a [`Response`] to the stream.
     pub fn send(&self, response: Response) -> Result<()> {
         protocol::send(&self.stream, response)
