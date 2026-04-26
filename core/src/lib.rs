@@ -36,9 +36,8 @@ pub struct SessionManager<C: Clock> {
     sessions: Vec<Session>,
     old_session: Option<Session>,
     last_flush: u64,
+    config: Configuration,
 }
-
-pub const SESSION_MANAGER_FLUSH_INTERVAL: u64 = 15;
 
 pub enum Response {
     Handled,
@@ -50,6 +49,22 @@ pub enum Response {
     Flush,
 }
 
+pub struct Configuration {
+    pub flush_interval: u64,
+    pub hidden_applications: Vec<String>,
+    pub min_session_duration: Option<u64>,
+}
+
+impl Default for Configuration {
+    fn default() -> Self {
+        Configuration {
+            flush_interval: 15,
+            hidden_applications: Vec::new(),
+            min_session_duration: Some(5),
+        }
+    }
+}
+
 impl<C: Clock> SessionManager<C> {
     pub fn new(clock: C) -> Self {
         Self {
@@ -59,12 +74,19 @@ impl<C: Clock> SessionManager<C> {
             current: Session::new_empty(),
             sessions: Vec::new(),
             last_flush: 0,
+            config: Configuration::default(),
         }
     }
 
     pub fn handle_event(&mut self, event: Event) -> Response {
         match event {
             Event::ActiveWindowChanged(a) => {
+                if let Some(ref app_id) = a {
+                    if self.config.hidden_applications.contains(&app_id) {
+                        return Response::Handled;
+                    }
+                }
+
                 self.new_session();
 
                 self.current.state = match a {
@@ -119,7 +141,7 @@ impl<C: Clock> SessionManager<C> {
 
                 self.update();
 
-                if now - self.last_flush >= SESSION_MANAGER_FLUSH_INTERVAL {
+                if now - self.last_flush >= self.config.flush_interval {
                     self.flush();
 
                     self.last_flush = now;
@@ -159,6 +181,12 @@ impl<C: Clock> SessionManager<C> {
 
         let current = self.current.clone();
 
+        if let Some(min) = self.config.min_session_duration {
+            if (current.utc_end - current.utc_start) <= min {
+                return;
+            }
+        }
+
         if let Some(last) = self.sessions.last_mut() {
             if last.state == current.state {
                 last.utc_end = current.utc_end;
@@ -167,6 +195,14 @@ impl<C: Clock> SessionManager<C> {
         }
 
         self.sessions.push(current);
+    }
+
+    pub fn config(&self) -> &Configuration {
+        &self.config
+    }
+
+    pub fn set_config(&mut self, config: Configuration) {
+        self.config = config;
     }
 
     pub fn sessions(&self) -> &Vec<Session> {

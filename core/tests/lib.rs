@@ -6,7 +6,6 @@
  */
 
 use spyland_core::Event;
-use spyland_core::SESSION_MANAGER_FLUSH_INTERVAL as FLUSH_INTERVAL;
 use spyland_core::State;
 
 mod common;
@@ -43,7 +42,7 @@ fn auto_flush_test() {
     let mut d = TestDriver::new();
 
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
-    d.tick(FLUSH_INTERVAL);
+    d.tick(d.mgr.config().flush_interval);
 
     assert_eq!(d.mgr.sessions().len(), 1, "Not one session");
 }
@@ -145,6 +144,7 @@ fn unidle_test() {
 #[test]
 fn session_merge_test() {
     let mut d = TestDriver::new();
+    let flush_interval = d.mgr.config().flush_interval;
 
     d.event(Event::ActiveWindowChanged(Some(
         "org.telegram.desktop".into(),
@@ -152,7 +152,7 @@ fn session_merge_test() {
     d.tick(1);
 
     for i in 1..4 {
-        d.advance(FLUSH_INTERVAL);
+        d.advance(flush_interval);
         d.update_and_flush();
 
         let sessions = d.mgr.sessions();
@@ -161,7 +161,7 @@ fn session_merge_test() {
         assert_eq!(sessions[0].utc_start, 1, "invalid utc_start");
         assert_eq!(
             sessions[0].utc_end,
-            1 + FLUSH_INTERVAL * i,
+            1 + flush_interval * i,
             "invalid utc_end"
         );
     }

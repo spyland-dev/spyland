@@ -5,7 +5,10 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#![allow(dead_code)]
+
 use spyland_core::Clock;
+use spyland_core::Configuration;
 use spyland_core::Event;
 use spyland_core::SessionManager;
 use std::cell::RefCell;
@@ -33,7 +36,12 @@ pub struct TestDriver {
 impl TestDriver {
     pub fn new() -> Self {
         let clock = SharedClock(Rc::new(RefCell::new(FakeClock { now: 1 })));
-        let mgr = SessionManager::new(clock.clone());
+        let mut mgr = SessionManager::new(clock.clone());
+
+        mgr.set_config(Configuration {
+            min_session_duration: None,
+            ..Default::default()
+        });
 
         Self { mgr, clock }
     }
