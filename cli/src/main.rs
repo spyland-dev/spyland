@@ -7,7 +7,6 @@
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-
 #[derive(Parser)]
 #[command(
     version,
@@ -27,6 +26,8 @@ struct Args {
 enum Command {
     /// Shows all your sessions in a row
     Sessions,
+    /// Shows your total screen time
+    Time,
 }
 
 #[tokio::main]
@@ -35,6 +36,7 @@ async fn main() {
 
     let result = match args.command {
         Command::Sessions => sessions().await,
+        Command::Time => time().await,
     };
 
     if let Err(err) = result {
@@ -74,6 +76,28 @@ async fn sessions() -> Result<()> {
             State::Empty => unreachable!(),
         }
     }
+
+    Ok(())
+}
+
+async fn time() -> Result<()> {
+    use spyland_core::{Session, SessionAnalytics};
+    use spyland_lib::db::Db;
+    use spyland_lib::path::get_database_path;
+
+    let db = Db::open_readonly(get_database_path()?).await?;
+
+    let sessions: Vec<Session> = db
+        .query_all()
+        .await?
+        .into_iter()
+        .map(Session::from)
+        .collect();
+
+    let analytic = SessionAnalytics::new(sessions);
+
+    println!("Total screen time: {}s", analytic.total_screen_time());
+    println!("Idle time: {}s", analytic.idle_time());
 
     Ok(())
 }
