@@ -90,3 +90,38 @@ fn analytic_idle_test() {
     let a = SessionAnalytics::new(d.mgr.sessions().clone());
     assert_eq!(a.idle_time(), 24);
 }
+
+#[test]
+fn analytic_time_for_each_app_test() {
+    let mut d = TestDriver::new();
+
+    const APP_ID1: &str = "kitty";
+    const APP_ID2: &str = "firefox";
+    const APP_ID3: &str = "org.telegram.desktop";
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID1.into())));
+    d.advance(28);
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID3.into())));
+    d.advance(16);
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID1.into())));
+    d.advance(22);
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID2.into())));
+    d.advance(32);
+
+    let a = SessionAnalytics::new(d.mgr.sessions().clone());
+    let h = a.time_for_each_app();
+
+    assert_eq!(h.len(), 3);
+
+    let time = h[APP_ID1];
+    assert_eq!(time, 28 + 22);
+
+    let time = h[APP_ID2];
+    assert_eq!(time, 32);
+
+    let time = h[APP_ID3];
+    assert_eq!(time, 16);
+}

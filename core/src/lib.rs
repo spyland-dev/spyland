@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use std::sync::mpsc::Receiver;
+use std::{collections::HashMap, sync::mpsc::Receiver};
 
 #[derive(Clone)]
 pub struct Session {
@@ -217,6 +217,23 @@ impl SessionAnalytics {
         }
 
         counter
+    }
+
+    pub fn time_for_each_app(&self) -> HashMap<String, u64> {
+        let mut hash_map = HashMap::new();
+
+        for s in &self.sessions {
+            if let State::Active { app_id, .. } = &s.state {
+                let duration = s.utc_end - s.utc_start;
+
+                hash_map
+                    .entry(app_id.to_owned())
+                    .and_modify(|v| *v += duration)
+                    .or_insert(duration);
+            }
+        }
+
+        hash_map
     }
 }
 
