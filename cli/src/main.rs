@@ -126,6 +126,11 @@ async fn time() -> Result<()> {
 
     let analytic = SessionAnalytics::new(sessions);
 
+    for (app_id, time) in analytic.time_for_each_app() {
+        println!("{app_id}: {time}s");
+    }
+
+    println!("-----");
     println!("Total screen time: {}s", analytic.total_screen_time());
     println!("Idle time: {}s", analytic.idle_time());
 
