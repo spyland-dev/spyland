@@ -99,13 +99,15 @@ impl<C: Clock + Send + 'static> App<C> {
             let mut sm_lock = session_manager.lock().unwrap();
             let response = sm_lock.handle_event(Event::Tick);
 
-            if matches!(response, Response::Flush)
+            if let Response::Flushed { merged } = response
                 && let Some(session) = sm_lock.sessions().last()
             {
-                database
-                    .insert(session.clone().into())
-                    .await
-                    .expect("Write to database failed");
+                if !merged {
+                    database.insert(session.clone().into()).await
+                } else {
+                    database.update_last(session.clone().into()).await
+                }
+                .expect("Database operation failed");
             }
         }
     }
