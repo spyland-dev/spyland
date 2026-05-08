@@ -8,8 +8,41 @@
 
 use anyhow::{Context, Result};
 use std::env;
-use std::fs;
 use std::path::PathBuf;
+
+macro_rules! define_path_ensurer {
+    (
+        $(#[$meta:meta])*
+        $fn_name:ident,
+        $get_path_fn:ident
+        $(, |$__path:ident| $extra:block)?
+    ) => {
+        $(#[$meta])*
+        pub fn $fn_name() -> anyhow::Result<std::path::PathBuf> {
+            use anyhow::Context;
+            use std::fs;
+
+            let path = $get_path_fn()?;
+
+            let parent = path
+                .parent()
+                .context("Path parent was None")?;
+
+            if !parent.exists() {
+                fs::create_dir_all(parent)?;
+            }
+
+            $(
+                {
+                    let $__path = &path;
+                    $extra
+                }
+            )?
+
+            Ok(path)
+        }
+    };
+}
 
 /// Returns the path to the spyland database:
 /// `$XDG_STATE_HOME/spyland/sessions.sqlite` or
@@ -37,22 +70,17 @@ pub fn get_database_path() -> Result<PathBuf> {
     Ok(state_path.join(filename))
 }
 
-/// Returns and ensures that the path exists.
-///
-/// <div class="warning">
-/// But it doesn't make sure the file exists, because sqlite will automatically create the file if it needs to.
-///
-/// Don't forget that debug builds use a different name: `sessions-debug.sqlite`!
-/// </div>
-pub fn ensure_database_path() -> Result<PathBuf> {
-    let db_path = get_database_path()?;
-
-    if !db_path.exists() {
-        fs::create_dir_all(&db_path.parent().context("Path parent was None")?)?;
-    }
-
-    Ok(db_path)
-}
+define_path_ensurer!(
+    /// Returns and ensures that the path exists.
+    ///
+    /// <div class="warning">
+    /// But it doesn't make sure the file exists, because sqlite will automatically create the file if it needs to.
+    ///
+    /// Don't forget that debug builds use a different name: `sessions-debug.sqlite`!
+    /// </div>
+    ensure_database_path,
+    get_database_path
+);
 
 /// Returns the path to the spyland socket.
 ///
@@ -70,7 +98,21 @@ pub fn get_socket_path() -> Result<PathBuf> {
     Ok(PathBuf::from(runtime_dir).join(filename))
 }
 
-/// Returns the socket path and ensures that it is not already occupied.
+define_path_ensurer!(
+    /// Returns the socket path and ensures that it is not already occupied.
+    ///
+    /// <div class="warning">
+    /// If the socket already exists, it will be removed!
+    /// Use carefully so as not to interfere with the running daemon.
+    /// </div>
+    ensure_socket_path,
+    get_socket_path,
+    |__path| {
+        if __path.exists() {
+            fs::remove_file(__path)?;
+        }
+    }
+);
 ///
 /// <div class="warning">
 /// If the socket already exists, it will be removed!
