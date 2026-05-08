@@ -41,6 +41,7 @@ pub struct SessionManager<C: Clock> {
 
 pub enum Response {
     Handled,
+    Ignored,
 
     SessionCreated,
     SessionUpdated,
@@ -85,7 +86,7 @@ impl<C: Clock> SessionManager<C> {
             Event::ActiveWindowChanged(a) => {
                 if let Some(ref app_id) = a {
                     if self.config.hidden_applications.contains(&app_id) {
-                        return Response::Handled;
+                        return Response::Ignored;
                     }
                 }
 
@@ -109,7 +110,7 @@ impl<C: Clock> SessionManager<C> {
             Event::Idle(idle) => {
                 if idle {
                     if self.current.state == State::Idle {
-                        return Response::Handled;
+                        return Response::Ignored;
                     }
 
                     if !self.current.is_empty() {
@@ -125,7 +126,7 @@ impl<C: Clock> SessionManager<C> {
                     self.update();
                 } else {
                     if self.current.state != State::Idle {
-                        return Response::Handled;
+                        return Response::Ignored;
                     }
 
                     self.new_session();
@@ -144,11 +145,9 @@ impl<C: Clock> SessionManager<C> {
                 self.update();
 
                 if now - self.last_flush >= self.config.flush_interval {
-                    self.flush();
-
                     self.last_flush = now;
 
-                    return Response::Flush;
+                    return self.flush();
                 }
 
                 Response::Handled
@@ -176,27 +175,29 @@ impl<C: Clock> SessionManager<C> {
         self.current.utc_end = self.clock.now();
     }
 
-    pub fn flush(&mut self) {
+    pub fn flush(&mut self) -> Response {
         if self.current.is_empty() {
-            return;
+            return Response::Ignored;
         }
 
         let current = self.current.clone();
 
         if let Some(min) = self.config.min_session_duration {
             if (current.utc_end - current.utc_start) <= min {
-                return;
+                return Response::Ignored;
             }
         }
 
         if let Some(last) = self.sessions.last_mut() {
             if last.state == current.state {
                 last.utc_end = current.utc_end;
-                return;
+                return Response::Handled;
             }
         }
 
         self.sessions.push(current);
+
+        Response::Handled
     }
 
     pub fn config(&self) -> &Configuration {
