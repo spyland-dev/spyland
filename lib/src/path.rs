@@ -113,22 +113,40 @@ define_path_ensurer!(
         }
     }
 );
+
+/// Returns the configuration path.
 ///
-/// <div class="warning">
-/// If the socket already exists, it will be removed!
-/// Use carefully so as not to interfere with the running daemon.
-/// </div>
-pub fn ensure_socket_path() -> Result<PathBuf> {
-    let sock_path = get_socket_path()?;
+/// `$XDG_CONFIG_HOME/spyland/config.toml` or
+/// `$XDG_CONFIG_HOME/spyland/config-debug.toml` **(IN DEBUG BUILDS!)**
+pub fn get_config_path() -> Result<PathBuf> {
+    let config_dir = match env::var("XDG_CONFIG_HOME") {
+        Ok(p) => PathBuf::from(p),
+        Err(_) => {
+            let home = env::var("HOME").context("Home directory is not set")?;
+            PathBuf::from(home).join(".config/")
+        }
+    };
 
-    let parent = &sock_path.parent().context("Path parent was None")?;
-    if !parent.exists() {
-        fs::create_dir_all(parent)?;
-    }
+    let filename = if cfg!(debug_assertions) {
+        "config-debug.toml"
+    } else {
+        "config.toml"
+    };
 
-    if sock_path.exists() {
-        fs::remove_file(&sock_path)?;
-    }
-
-    Ok(sock_path)
+    Ok(config_dir.join("spyland").join(filename))
 }
+
+define_path_ensurer!(
+    /// Returns and ensures that the configuration file exists.
+    ///
+    /// <div class="warning">
+    /// Don't forget that debug builds use a different name: `config-debug.toml`!
+    /// </div>
+    ensure_config_path,
+    get_config_path,
+    |__path| {
+        if !__path.exists() {
+            fs::File::create(__path)?;
+        }
+    }
+);
