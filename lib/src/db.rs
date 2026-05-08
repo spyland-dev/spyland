@@ -175,6 +175,84 @@ impl Db {
             .fetch_all(&self.pool)
             .await?)
     }
+
+    /// Updates a session entry by its row ID.
+    ///
+    /// # Arguments
+    /// * `rowid` --- the internal SQLite row ID
+    /// * `session` --- the updated session data
+    ///
+    /// # Example
+    /// ```no_run
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// # let db = Db::open("/path/to/database.sqlite", true).await?;
+    /// # db.create().await?;
+    /// # let session = /* ... */;
+    /// // Update session at row 1
+    /// db.update_by_rowid(1, session).await?;
+    /// # }
+    /// ```
+    pub async fn update_by_rowid(
+        &self,
+        rowid: i64,
+        session: SessionSql,
+    ) -> Result<SqliteQueryResult> {
+        let result = query!(
+            "
+            UPDATE sessions
+            SET start = ?1, end = ?2, is_active = ?3, app_id = ?4, workspace = ?5
+            WHERE rowid = ?6
+            ",
+            session.start,
+            session.end,
+            session.is_active,
+            session.app_id,
+            session.workspace,
+            rowid,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    /// Updates the last (most recent) session entry.
+    ///
+    /// This updates the session with the highest `rowid`.
+    ///
+    /// # Arguments
+    /// * `session` --- the updated session data
+    ///
+    /// # Example
+    /// ```no_run
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// # let db = Db::open("/path/to/database.sqlite", true).await?;
+    /// # db.create().await?;
+    /// # let session = /* ... */;
+    /// // Update the most recent session
+    /// db.update_last(session).await?;
+    /// # }
+    /// ```
+    pub async fn update_last(&self, session: SessionSql) -> Result<SqliteQueryResult> {
+        let result = query!(
+            "
+            UPDATE sessions
+            SET start = ?1, end = ?2, is_active = ?3, app_id = ?4, workspace = ?5
+            WHERE rowid = (SELECT MAX(rowid) FROM sessions)
+            ",
+            session.start,
+            session.end,
+            session.is_active,
+            session.app_id,
+            session.workspace,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result)
+    }
 }
 
 /// A database representation for [`Session`].
@@ -375,5 +453,92 @@ mod tests {
                 workspace: Some(WORKSPACE),
             } if app_id == APP_ID
         ));
+    }
+
+    #[sqlx::test]
+    async fn update_by_rowid_test(pool: SqlitePool) {
+        let db = Db { pool };
+
+        db.create().await.unwrap();
+
+        let session1 = Session {
+            utc_start: 1,
+            utc_end: 16,
+            state: State::Active {
+                app_id: "firefox".into(),
+                workspace: Some(1),
+            },
+        };
+
+        db.insert(session1.into()).await.unwrap();
+
+        const UPDATED_END: i64 = 50;
+        const UPDATED_APP_ID: &str = "chromium";
+
+        let updated_session = SessionSql {
+            start: 1,
+            end: UPDATED_END,
+            is_active: true,
+            app_id: Some(UPDATED_APP_ID.into()),
+            workspace: Some(1),
+        };
+
+        let result = db.update_by_rowid(1, updated_session).await.unwrap();
+        assert_eq!(result.rows_affected(), 1);
+
+        let sessions = db.query_all().await.unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].end, UPDATED_END);
+        assert_eq!(sessions[0].app_id, Some("chromium".into()));
+    }
+
+    #[sqlx::test]
+    async fn update_last_test(pool: SqlitePool) {
+        let db = Db { pool };
+
+        db.create().await.unwrap();
+
+        const S1_END: u64 = 20;
+
+        let session1 = Session {
+            utc_start: 1,
+            utc_end: S1_END,
+            state: State::Active {
+                app_id: "firefox".into(),
+                workspace: None,
+            },
+        };
+
+        const START: u64 = 20;
+        const APP_ID: &str = "steam";
+        const S2_END: u64 = 60;
+
+        let session2 = Session {
+            utc_start: START,
+            utc_end: 40,
+            state: State::Active {
+                app_id: APP_ID.into(),
+                workspace: Some(2),
+            },
+        };
+
+        db.insert(session1.into()).await.unwrap();
+        db.insert(session2.into()).await.unwrap();
+
+        let updated_last = SessionSql {
+            start: START as i64,
+            end: S2_END as i64,
+            is_active: true,
+            app_id: Some(APP_ID.into()),
+            workspace: Some(2),
+        };
+
+        let result = db.update_last(updated_last).await.unwrap();
+        assert_eq!(result.rows_affected(), 1);
+
+        let sessions = db.query_all().await.unwrap();
+        assert_eq!(sessions.len(), 2);
+        assert_eq!(sessions[0].end, S1_END as i64);
+        assert_eq!(sessions[1].end, S2_END as i64);
     }
 }
