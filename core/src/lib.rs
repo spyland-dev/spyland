@@ -47,7 +47,7 @@ pub enum Response {
     SessionUpdated,
     SessionIdled(bool),
 
-    Flush,
+    Flushed{ merged: bool },
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -191,13 +191,13 @@ impl<C: Clock> SessionManager<C> {
         if let Some(last) = self.sessions.last_mut() {
             if last.state == current.state {
                 last.utc_end = current.utc_end;
-                return Response::Handled;
+                return Response::Flushed { merged: true };
             }
         }
 
         self.sessions.push(current);
 
-        Response::Handled
+        Response::Flushed { merged: false}
     }
 
     pub fn config(&self) -> &Configuration {
