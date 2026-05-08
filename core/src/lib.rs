@@ -50,6 +50,7 @@ pub enum Response {
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 pub struct Configuration {
     pub flush_interval: u64,
     pub hidden_applications: Vec<String>,

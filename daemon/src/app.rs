@@ -11,17 +11,18 @@ use std::{
 };
 
 use spyland_backend_niri::NiriBackend;
-use spyland_core::{Backend, Clock, Event, Response, SessionManager};
+use spyland_core::{Backend, Clock, Configuration as CoreConfig, Event, Response, SessionManager};
 use spyland_lib::{
     db::Db,
     ipc::{
         IpcConnection, IpcServer,
         protocol::{Request as IpcRequest, Response as IpcResponse},
     },
+    path::ensure_config_path,
 };
 
 use anyhow::{Context, Result};
-use log::trace;
+use log::{trace, warn};
 use tokio::time::interval;
 
 pub struct App<C: Clock> {
@@ -33,13 +34,30 @@ pub struct App<C: Clock> {
 
 impl<C: Clock> App<C> {
     pub async fn new(db: Db, server: IpcServer, clock: C) -> Result<Self> {
+        let text = std::fs::read_to_string(ensure_config_path()?)?;
+        let toml: toml::Value = toml::from_str(&text)?;
+
+        let mut sm = SessionManager::new(clock);
+        let config: CoreConfig = match toml.get("core") {
+            Some(value) => value
+                .clone()
+                .try_into()
+                .context("Failed to deserialize `core` section from config")?,
+
+            None => {
+                warn!("Failed to get `core` section from the config! Use default.");
+                CoreConfig::default()
+            }
+        };
+        sm.set_config(config);
+
         let mut backend = new_backend().context("No backend is available")?;
 
         db.create().await.context("Failed to create database")?;
 
         Ok(Self {
             receiver: backend.subscribe(),
-            session_manager: Arc::new(Mutex::new(SessionManager::new(clock))),
+            session_manager: Arc::new(Mutex::new(sm)),
             server,
             db,
         })

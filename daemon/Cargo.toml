@@ -7,7 +7,9 @@ edition = "2024"
 anyhow = "1.0.102"
 env_logger = "0.11.10"
 log = "0.4.29"
+serde = { version = "1.0.228", features = ["derive"] }
 spyland-backend-niri = { version = "0.1.0", path = "../niri" }
-spyland-core = { version = "0.1.0", path = "../core" }
+spyland-core = { version = "0.1.0", path = "../core", features = ["serde"] }
 spyland-lib = { version = "0.1.0", path = "../lib" }
 tokio = { version = "1.51.1", features = ["rt", "macros", "rt-multi-thread", "time"] }
+toml = "1.1.2"
