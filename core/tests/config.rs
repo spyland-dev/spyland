@@ -10,7 +10,7 @@ fn flush_interval_test() {
 
     d.mgr.set_config(Configuration {
         flush_interval: FLUSH_INTERVAL,
-        min_session_duration: None,
+        min_session_duration: 0,
         ..Default::default()
     });
 
@@ -44,7 +44,7 @@ fn min_session_duration_test() {
     let mut d = TestDriver::new();
 
     d.mgr.set_config(Configuration {
-        min_session_duration: Some(10),
+        min_session_duration: 10,
         ..Default::default()
     });
 

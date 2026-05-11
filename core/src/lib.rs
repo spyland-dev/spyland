@@ -47,7 +47,7 @@ pub enum Response {
     SessionUpdated,
     SessionIdled(bool),
 
-    Flushed{ merged: bool },
+    Flushed { merged: bool },
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -55,7 +55,7 @@ pub enum Response {
 pub struct Configuration {
     pub flush_interval: u64,
     pub hidden_applications: Vec<String>,
-    pub min_session_duration: Option<u64>,
+    pub min_session_duration: u64,
 }
 
 impl Default for Configuration {
@@ -63,7 +63,7 @@ impl Default for Configuration {
         Configuration {
             flush_interval: 15,
             hidden_applications: Vec::new(),
-            min_session_duration: Some(5),
+            min_session_duration: 5,
         }
     }
 }
@@ -182,8 +182,8 @@ impl<C: Clock> SessionManager<C> {
 
         let current = self.current.clone();
 
-        if let Some(min) = self.config.min_session_duration {
-            if (current.utc_end - current.utc_start) <= min {
+        if self.config.min_session_duration != 0 {
+            if (current.utc_end - current.utc_start) <= self.config.min_session_duration {
                 return Response::Ignored;
             }
         }
@@ -197,7 +197,7 @@ impl<C: Clock> SessionManager<C> {
 
         self.sessions.push(current);
 
-        Response::Flushed { merged: false}
+        Response::Flushed { merged: false }
     }
 
     pub fn config(&self) -> &Configuration {

@@ -39,7 +39,7 @@ impl TestDriver {
         let mut mgr = SessionManager::new(clock.clone());
 
         mgr.set_config(Configuration {
-            min_session_duration: None,
+            min_session_duration: 0,
             ..Default::default()
         });
 
