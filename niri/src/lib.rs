@@ -4,11 +4,12 @@
  *  Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
-
 use log::{error, warn};
 use niri_ipc::socket::Socket;
 use niri_ipc::{Event as NiriEvent, Request, Response, Window};
 use spyland_core::{Backend, Event};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
@@ -52,16 +53,6 @@ impl Backend for NiriBackend {
     }
 }
 
-fn resolve_window(socket: &mut Socket, id: u64) -> Option<Window> {
-    let response = socket.send(Request::Windows).ok()?.ok()?;
-
-    if let Response::Windows(windows) = response {
-        return windows.iter().find(|w| w.id == id).cloned();
-    }
-
-    None
-}
-
 macro_rules! send_event {
     ($tx:expr, $event:expr) => {
         if $tx.send($event).is_err() {
@@ -72,14 +63,10 @@ macro_rules! send_event {
 }
 
 fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
-    let connect = || {
-        socket_path
-            .as_ref()
-            .map_or_else(Socket::connect, |p| Socket::connect_to(p))
-            .expect("failed to connect to niri")
-    };
-    let mut event_socket = connect();
-    let mut query_socket = connect();
+    let mut event_socket = socket_path
+        .as_ref()
+        .map_or_else(Socket::connect, |p| Socket::connect_to(p))
+        .expect("failed to connect to niri");
 
     let reply = event_socket
         .send(Request::EventStream)
@@ -87,20 +74,59 @@ fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
 
     if matches!(reply, Ok(Response::Handled)) {
         let mut read_event = event_socket.read_events();
+        let mut windows: HashMap<u64, Window> = HashMap::new();
         loop {
             match read_event() {
                 Ok(event) => match event {
+                    NiriEvent::WindowsChanged {
+                        windows: niri_windows,
+                    } => {
+                        for window in niri_windows {
+                            windows.insert(window.id, window.clone());
+                            if window.is_focused {
+                                send_event!(tx, Event::ActiveWindowChanged(window.app_id));
+                            }
+                        }
+                    }
+                    NiriEvent::WindowOpenedOrChanged { window } => match windows.entry(window.id) {
+                        Entry::Occupied(mut entry) => {
+                            let entry = entry.get_mut();
+                            *entry = window;
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(window);
+                        }
+                    },
+                    NiriEvent::WindowClosed { id } => {
+                        if let Entry::Occupied(entry) = windows.entry(id) {
+                            entry.remove();
+                        }
+                    }
                     NiriEvent::WindowFocusChanged { id } => match id {
                         Some(id) => {
-                            let window = resolve_window(&mut query_socket, id);
-                            if let Some(w) = window {
-                                send_event!(tx, Event::ActiveWindowChanged(w.app_id));
+                            for w in windows.values_mut() {
+                                if w.id == id {
+                                    w.is_focused = true;
+                                    send_event!(tx, Event::ActiveWindowChanged(w.app_id.clone()));
+                                    break;
+                                }
                             }
                         }
                         None => {
                             send_event!(tx, Event::ActiveWindowChanged(None));
                         }
                     },
+                    NiriEvent::WorkspacesChanged { workspaces } => {
+                        for workspace in workspaces {
+                            if workspace.is_focused {
+                                send_event!(
+                                    tx,
+                                    Event::WorkspaceChanged(workspace.id.try_into().unwrap())
+                                );
+                                break;
+                            }
+                        }
+                    }
                     NiriEvent::WorkspaceActivated { id, focused } => {
                         if focused {
                             send_event!(tx, Event::WorkspaceChanged(id.try_into().unwrap()))

@@ -66,10 +66,6 @@ impl FakeNiriServer {
                             let rx = self.ev_receiver.clone();
                             thread::spawn(move || Self::handle_event_stream(writer, rx));
                         }
-                        Ok(Request::Windows) => {
-                            let windows = self.windows.clone();
-                            Self::handle_windows_request(writer, windows);
-                        }
                         _ => {}
                     }
                 }
@@ -93,14 +89,6 @@ impl FakeNiriServer {
                     break;
                 }
             }
-        }
-    }
-    fn handle_windows_request(mut writer: UnixStream, windows: Arc<Mutex<Vec<Window>>>) {
-        let reply: Reply = Ok(Response::Windows(windows.lock().unwrap().to_vec()));
-
-        if let Ok(json) = serde_json::to_string(&reply) {
-            let _ = writeln!(writer, "{}", json);
-            let _ = writer.flush();
         }
     }
 }
@@ -168,7 +156,11 @@ impl TestDriver {
             focus_timestamp: None,
         };
 
-        windows.push(window);
+        windows.push(window.clone());
+        server
+            .ev_sender
+            .send(NiriEvent::WindowOpenedOrChanged { window })
+            .expect("failed to send event");
         server
             .ev_sender
             .send(NiriEvent::WindowFocusChanged { id: Some(id) })
