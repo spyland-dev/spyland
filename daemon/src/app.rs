@@ -11,7 +11,10 @@ use std::{
 };
 
 use spyland_backend_niri::NiriBackend;
-use spyland_core::{Backend, Clock, Configuration as CoreConfig, Event, Response, SessionManager};
+use spyland_core::{
+    Backend, Event,
+    manager::{Clock, Configuration as CoreConfig, Response, SessionManager},
+};
 use spyland_lib::{
     db::Db,
     ipc::{

@@ -7,10 +7,8 @@
 
 #![allow(dead_code)]
 
-use spyland_core::Clock;
-use spyland_core::Configuration;
 use spyland_core::Event;
-use spyland_core::SessionManager;
+use spyland_core::manager::{Clock, Configuration, SessionManager};
 use std::cell::RefCell;
 use std::rc::Rc;
 

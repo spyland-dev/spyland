@@ -7,7 +7,7 @@
 
 use anyhow::Result;
 use log::info;
-use spyland_core::Clock;
+use spyland_core::manager::Clock;
 use std::{
     fs,
     path::PathBuf,

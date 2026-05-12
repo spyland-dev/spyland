@@ -1,7 +1,8 @@
 mod common;
 
 use common::TestDriver;
-use spyland_core::{Configuration, Event};
+use spyland_core::Event;
+use spyland_core::manager::Configuration;
 
 #[test]
 fn flush_interval_test() {
