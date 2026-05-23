@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE sessions\n            SET start = ?1, end = ?2, is_active = ?3, app_id = ?4, workspace = ?5\n            WHERE rowid = ?6\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "513090e5932a0aa8bfd6bdca006a992c45373d4dd808dc0b42e5598634abc8d6"
+}

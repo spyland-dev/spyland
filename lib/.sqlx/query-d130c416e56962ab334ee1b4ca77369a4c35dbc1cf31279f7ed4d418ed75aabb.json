@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM sessions",
+  "describe": {
+    "columns": [
+      {
+        "name": "start",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "end",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_active",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "app_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "workspace",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "d130c416e56962ab334ee1b4ca77369a4c35dbc1cf31279f7ed4d418ed75aabb"
+}

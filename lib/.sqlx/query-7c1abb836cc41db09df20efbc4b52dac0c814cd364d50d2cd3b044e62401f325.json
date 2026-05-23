@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE sessions\n            SET start = ?1, end = ?2, is_active = ?3, app_id = ?4, workspace = ?5\n            WHERE rowid = (SELECT MAX(rowid) FROM sessions)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "7c1abb836cc41db09df20efbc4b52dac0c814cd364d50d2cd3b044e62401f325"
+}
