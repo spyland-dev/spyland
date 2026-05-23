@@ -8,15 +8,75 @@
 use crate::{Session, State};
 use std::collections::HashMap;
 
+/// Statistics for sessions.
+///
+/// Provides methods to calculate various metrics from a collection of sessions,
+/// such as total screen time, per-application usage, and idle time.
 pub struct SessionAnalytics {
     sessions: Vec<Session>,
 }
 
 impl SessionAnalytics {
+    /// Creates a new instance from a list of sessions.
+    ///
+    /// # Arguments
+    /// - `sessions` --- collected sessions to analyze
+    ///
+    /// # Example
+    /// ```
+    /// use spyland_core::{SessionAnalytics, Session, State};
+    ///
+    /// let sessions = vec![
+    ///     Session {
+    ///         utc_start: 100,
+    ///         utc_end: 130,
+    ///         state: State::Active {
+    ///             app_id: "firefox".to_string(),
+    ///             workspace: Some(1),
+    ///         },
+    ///     },
+    ///     Session {
+    ///         utc_start: 130,
+    ///         utc_end: 150,
+    ///         state: State::Idle,
+    ///     },
+    /// ];
+    ///
+    /// let analytics = SessionAnalytics::new(sessions);
+    /// assert_eq!(analytics.total_screen_time(), 50);
+    /// ```
     pub fn new(sessions: Vec<Session>) -> Self {
         Self { sessions }
     }
 
+    /// Returns the total screen time across all sessions.
+    ///
+    /// Sums the duration of all sessions regardless of application or state.
+    /// Time is measured in the same units as returned by [Clock::now].
+    ///
+    /// # Example
+    /// ```
+    /// use spyland_core::{SessionAnalytics, Session, State};
+    ///
+    /// let sessions = vec![
+    ///     Session {
+    ///         utc_start: 0,
+    ///         utc_end: 50,
+    ///         state: State::Idle
+    ///     },
+    ///     Session {
+    ///         utc_start: 50,
+    ///         utc_end: 120,
+    ///         state: State::Active {
+    ///             app_id: "app".to_string(),
+    ///             workspace: None
+    ///         }
+    ///     },
+    /// ];
+    /// let analytics = SessionAnalytics::new(sessions);
+    ///
+    /// assert_eq!(analytics.total_screen_time(), 120);
+    /// ```
     pub fn total_screen_time(&self) -> u64 {
         let mut counter: u64 = 0;
 
@@ -27,6 +87,21 @@ impl SessionAnalytics {
         counter
     }
 
+    /// Returns screen time for a specific app.
+    ///
+    /// # Arguments
+    /// - `target_app_id` --- target application identifier
+    ///
+    /// # Example
+    /// ```
+    /// use spyland_core::SessionAnalytics;
+    /// # fn main() {
+    /// # let sessions = Vec::new();
+    /// let analytics = SessionAnalytics::new(sessions);
+    ///
+    /// let screen_time = analytics.screen_time_app(String::from("org.telegram.desktop"));
+    /// # }
+    /// ```
     pub fn screen_time_app(&self, target_app_id: String) -> u64 {
         let mut counter: u64 = 0;
 
@@ -41,6 +116,18 @@ impl SessionAnalytics {
         counter
     }
 
+    /// Returns total idle time.
+    ///
+    /// # Example
+    /// ```
+    /// use spyland_core::SessionAnalytics;
+    /// # fn main() {
+    /// # let sessions = Vec::new();
+    /// let analytics = SessionAnalytics::new(sessions);
+    ///
+    /// let total_idle_time = analytics.idle_time();
+    /// # }
+    /// ```
     pub fn idle_time(&self) -> u64 {
         let mut counter: u64 = 0;
 
@@ -53,6 +140,23 @@ impl SessionAnalytics {
         counter
     }
 
+    /// Returns time for all applications.
+    ///
+    /// # Returns
+    /// Returns [HashMap], where the key is an application identifier ([String]), and the value is a time ([u64]).
+    ///
+    /// # Example
+    /// ```
+    /// use spyland_core::SessionAnalytics;
+    /// # let sessions = Vec::new();
+    /// let analytics = SessionAnalytics::new(sessions);
+    ///
+    /// let time_for_all_apps = analytics.time_for_each_app();
+    ///
+    /// for (key, value) in time_for_all_apps {
+    ///     println!("Application: {key}, Time: {value} seconds");
+    /// }
+    /// ```
     pub fn time_for_each_app(&self) -> HashMap<String, u64> {
         let mut hash_map = HashMap::new();
 
