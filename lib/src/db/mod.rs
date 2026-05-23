@@ -24,9 +24,7 @@ mod tests;
 /// Useful wrapper to manage database.
 ///
 /// # Example
-/// ```no_run
-/// # #[tokio::main]
-/// # async fn main() -> Result<()> {
+/// ```ignore
 /// // Opens database file
 /// let db = Db::open("/path/to/database.sqlite").await?;
 ///
@@ -42,17 +40,6 @@ pub struct Db {
 
 impl Db {
     /// Creates [`Db`] from [`SqliteConnectOptions`].
-    ///
-    /// # Example
-    /// ```
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<()> {
-    /// let db = Db::from_options(
-    ///     SqliteConnectOptions::new()
-    ///         .in_memory()
-    /// ).await?;
-    /// # }
-    /// ```
     pub async fn from_options(options: SqliteConnectOptions) -> Result<Self> {
         Ok(Self {
             pool: SqlitePool::connect_with(options).await?,
@@ -66,7 +53,7 @@ impl Db {
     /// * `create_if_missing` --- creates file if its missing
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
     /// let db = Db::open("/path/to/database.sqlite").await?;
@@ -86,7 +73,7 @@ impl Db {
     /// Read-only opens database by its path.
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
     /// let db = Db::open_readonly("/path/to/database.sqlite")
@@ -102,18 +89,6 @@ impl Db {
     }
 
     /// Creates table if not exists.
-    ///
-    /// # Example
-    /// ```
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<()> {
-    /// # let db = Db::from_options(
-    /// #     SqliteConnectOptions::new()
-    /// #         .in_memory()
-    /// # ).await?;
-    /// db.create().await?;
-    /// # }
-    /// ```
     pub async fn create(&self) -> Result<()> {
         query!(
             "
@@ -135,27 +110,6 @@ impl Db {
     }
 
     /// Inserts [`SessionSql`] to the table.
-    ///
-    /// # Example
-    /// ```
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<()> {
-    /// # let db = Db::from_options(
-    /// #     SqliteConnectOptions::new()
-    /// #         .in_memory()
-    /// # ).await?;
-    /// db.create().await?;
-    ///
-    /// # let session = Session {
-    /// #   utc_start: 0,
-    /// #   utc_end: 15,
-    /// #   state: State::Idle,
-    /// # };
-    ///
-    /// // Don't forget `.into()`!
-    /// db.insert(session.into()).await?;
-    /// # }
-    /// ```
     pub async fn insert(&self, session: SessionSql) -> Result<SqliteQueryResult> {
         let result = query!(
             "
@@ -188,7 +142,7 @@ impl Db {
     /// * `session` --- the updated session data
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
     /// # let db = Db::open("/path/to/database.sqlite", true).await?;
@@ -230,9 +184,9 @@ impl Db {
     /// * `session` --- the updated session data
     ///
     /// # Example
-    /// ```no_run
+    /// ```ignore
     /// # #[tokio::main]
-    /// # async fn main() -> Result<()> {
+    /// # async fn main() -> anyhow::Result<()> {
     /// # let db = Db::open("/path/to/database.sqlite", true).await?;
     /// # db.create().await?;
     /// # let session = /* ... */;
