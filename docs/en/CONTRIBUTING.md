@@ -53,6 +53,7 @@ Format imports however you find convenient — as long as `rustfmt` is satisfied
 that all new code must be tested.
 
 Every new feature requires tests.
+Just like bug fixes: if you fix a bug, please write a test for the it.
 
 If you think you don't need them in your case, open an issue
 or include a justification in the PR.
@@ -116,7 +117,7 @@ Document the public API of `spyland-lib` and `spyland-core` crates.
 Requirements:
 1. Brief description
 2. More detailed description (if necessary)
-3. Function parameters in section `# Arguments`
+3. Function parameters in section `# Arguments` (if it's a function)
 4. Usage examples in section `# Example`
 5. Warnings in sections `# Panics` or `# Safety` (if applicable)
 6. Doctests to verify examples
