@@ -3,12 +3,18 @@ name = "spyland-lib"
 version.workspace = true
 edition = "2024"
 
+[features]
+default = ["db", "ipc", "path"]
+db = ["dep:sqlx", "dep:spyland-core", "dep:anyhow"]
+ipc = ["dep:serde", "dep:serde_json", "dep:anyhow"]
+path = ["dep:anyhow"]
+
 [dependencies]
-anyhow = "1.0.102"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-spyland-core = { version = "0.1.0", path = "../core" }
-sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"] }
+anyhow = { version = "1.0.102", optional = true }
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+serde_json = { version = "1.0.149", optional = true }
+spyland-core = { version = "0.1.0", path = "../core", optional = true }
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"], optional = true }
 
 [dev-dependencies]
 sqlx = { version = "0.8.6", features = ["runtime-tokio"] }

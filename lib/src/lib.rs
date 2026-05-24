@@ -15,6 +15,9 @@
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
+#[cfg(feature = "db")]
 pub mod db;
+#[cfg(feature = "ipc")]
 pub mod ipc;
+#[cfg(feature = "path")]
 pub mod path;
