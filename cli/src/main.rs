@@ -44,6 +44,32 @@ async fn main() {
     }
 }
 
+fn human_duration(seconds: u64) -> String {
+    let hours = seconds / 3600;
+    let minutes = (seconds % 3600) / 60;
+    let seconds = seconds % 60;
+
+    let mut str = String::new();
+
+    if hours > 0 {
+        str += format!("{hours}h").as_str();
+    }
+
+    if minutes > 0 {
+        str += format!("{minutes}m").as_str();
+    }
+
+    if seconds > 0 {
+        str += format!("{seconds}s").as_str();
+    }
+
+    if str.is_empty() {
+        str = "0s".to_string();
+    }
+
+    str
+}
+
 async fn sessions() -> Result<()> {
     use spyland_core::{Session, State};
     use spyland_lib::db::Db;
@@ -82,12 +108,12 @@ async fn sessions() -> Result<()> {
         }
 
         print!(
-            "@--- ({}) {}s: ",
+            "@--- ({}) {}: ",
             {
                 let format = format_description::parse("[hour]:[minute]")?;
                 dt.format(&format)?
             },
-            session.utc_end - session.utc_start
+            human_duration(session.utc_end - session.utc_start)
         );
 
         match &session.state {
@@ -127,12 +153,15 @@ async fn time() -> Result<()> {
     let analytic = SessionAnalytics::new(sessions);
 
     for (app_id, time) in analytic.time_for_each_app() {
-        println!("{app_id}: {time}s");
+        println!("{app_id}: {}", human_duration(time));
     }
 
     println!("-----");
-    println!("Total screen time: {}s", analytic.total_screen_time());
-    println!("Idle time: {}s", analytic.idle_time());
+    println!(
+        "Total screen time: {}",
+        human_duration(analytic.total_screen_time())
+    );
+    println!("Idle time: {}", human_duration(analytic.idle_time()));
 
     Ok(())
 }
