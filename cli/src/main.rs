@@ -27,7 +27,12 @@ enum Command {
     /// Shows all your sessions in a row
     Sessions,
     /// Shows your total screen time
-    Time,
+    Time {
+        #[arg(short = 'D', long)]
+        descending: bool,
+        #[arg(short = 'N', long)]
+        by_name: bool,
+    },
 }
 
 #[tokio::main]
@@ -36,7 +41,10 @@ async fn main() {
 
     let result = match args.command {
         Command::Sessions => sessions().await,
-        Command::Time => time().await,
+        Command::Time {
+            descending,
+            by_name,
+        } => time(!descending, !by_name).await,
     };
 
     if let Err(err) = result {
@@ -136,7 +144,7 @@ async fn sessions() -> Result<()> {
     Ok(())
 }
 
-async fn time() -> Result<()> {
+async fn time(ascending: bool, by_time: bool) -> Result<()> {
     use spyland_core::{Session, SessionAnalytics};
     use spyland_lib::db::Db;
     use spyland_lib::path::get_database_path;
@@ -152,8 +160,25 @@ async fn time() -> Result<()> {
 
     let analytic = SessionAnalytics::new(sessions);
 
-    for (app_id, time) in analytic.time_for_each_app() {
-        println!("{app_id}: {}", human_duration(time));
+    let time = analytic.time_for_each_app();
+    let mut stat: Vec<(&String, &u64)> = time.iter().collect();
+
+    if by_time {
+        if ascending {
+            stat.sort_by(|x, y| y.1.cmp(x.1));
+        } else {
+            stat.sort_by(|x, y| x.1.cmp(y.1));
+        }
+    } else {
+        if ascending {
+            stat.sort_by(|x, y| x.0.cmp(y.0));
+        } else {
+            stat.sort_by(|x, y| y.0.cmp(x.0));
+        }
+    }
+
+    for (app_id, time) in stat {
+        println!("{app_id}: {}", human_duration(*time));
     }
 
     println!("-----");
