@@ -1,3 +1,9 @@
+<div align="center">
+
+[English](../en/CONTRIBUTING.md) | **Русский**
+
+</div>
+
 Перед тем, как создать Pull Request в мой проект, прочитайте это руководство.
 
 Спасибо за интерес к `spyland`!
