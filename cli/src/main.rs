@@ -5,8 +5,9 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use serde::{Deserialize, Serialize};
 #[derive(Parser)]
 #[command(
     version,
@@ -22,33 +23,70 @@ struct Args {
     command: Command,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+struct Config {
+    sort_ascending: bool,
+    sort_by_time: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            sort_ascending: true,
+            sort_by_time: true,
+        }
+    }
+}
+
 #[derive(Subcommand, Clone)]
 enum Command {
     /// Shows all your sessions in a row
     Sessions,
     /// Shows your total screen time
     Time {
-        #[arg(short = 'D', long)]
-        descending: bool,
-        #[arg(short = 'N', long)]
-        by_name: bool,
+        /// Sort ascending
+        #[arg(short = 'A', long)]
+        ascending: Option<bool>,
+        /// Sort by time
+        #[arg(short = 'T', long)]
+        by_time: Option<bool>,
     },
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
+    use spyland_lib::path;
+    use toml::Value;
+
     let args = Args::parse();
 
-    let result = match args.command {
-        Command::Sessions => sessions().await,
-        Command::Time {
-            descending,
-            by_name,
-        } => time(!descending, !by_name).await,
-    };
+    let config: Config;
 
-    if let Err(err) = result {
-        eprintln!("{err:#}");
+    if let Ok(file) = &std::fs::read_to_string(path::ensure_config_path()?) {
+        let toml: Value = toml::from_str(&file)?;
+
+        if let Some(value) = toml.get("frontend") {
+            config = value
+                .clone()
+                .try_into()
+                .context("Invalid `frontend` section in the config")?;
+        } else {
+            config = Config::default();
+        }
+    } else {
+        config = Config::default();
+    }
+
+    match args.command {
+        Command::Sessions => sessions().await,
+        Command::Time { ascending, by_time } => {
+            time(
+                ascending.unwrap_or(config.sort_ascending),
+                by_time.unwrap_or(config.sort_by_time),
+            )
+            .await
+        }
     }
 }
 
