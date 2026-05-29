@@ -120,7 +120,7 @@ async fn sessions() -> Result<()> {
     use spyland_core::{Session, State};
     use spyland_lib::db::Db;
     use spyland_lib::path::get_database_path;
-    use time::{OffsetDateTime, format_description};
+    use time::{OffsetDateTime, UtcOffset, format_description};
 
     let db = Db::open_readonly(get_database_path()?).await?;
 
@@ -143,11 +143,12 @@ async fn sessions() -> Result<()> {
 
             if dt.month() != odt.month() || dt.day() != odt.day() {
                 println!("#    {}", {
+                    let offset = UtcOffset::current_local_offset()?;
                     let format = format_description::parse(
                         "[weekday repr:short], [day] [month repr:long] [year]",
                     )?;
 
-                    dt.format(&format)?
+                    dt.to_offset(offset).format(&format)?
                 });
                 println!("|\n|");
             }
@@ -156,8 +157,10 @@ async fn sessions() -> Result<()> {
         print!(
             "@--- ({}) {}: ",
             {
+                let offset = UtcOffset::current_local_offset()?;
                 let format = format_description::parse("[hour]:[minute]")?;
-                dt.format(&format)?
+
+                dt.to_offset(offset).format(&format)?
             },
             human_duration(session.utc_end - session.utc_start)
         );
