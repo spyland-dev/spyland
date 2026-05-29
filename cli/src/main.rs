@@ -176,7 +176,6 @@ async fn sessions() -> Result<()> {
             State::Idle => {
                 println!("Idle");
             }
-            State::Empty => unreachable!(),
         }
 
         old_start = session.utc_start as i64;
