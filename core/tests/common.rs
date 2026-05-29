@@ -58,8 +58,7 @@ impl TestDriver {
         self.mgr.handle_event(ev);
     }
 
-    pub fn update_and_flush(&mut self) {
-        self.mgr.update();
+    pub fn flush(&mut self) {
         self.mgr.flush();
     }
 }

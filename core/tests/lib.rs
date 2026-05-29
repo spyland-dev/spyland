@@ -16,7 +16,7 @@ fn simple_session() {
     let mut d = TestDriver::new();
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
-    d.update_and_flush();
+    d.flush();
 
     assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
 }
@@ -29,7 +29,7 @@ fn session_time_test() {
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(TIME);
-    // d.update_and_flush();
+    // d.flush();
     // not needed because of automatic update()
     // and refresh() in SessionManager
 
@@ -56,7 +56,7 @@ fn session_data_test() {
 
     d.event(Event::WorkspaceChanged(WORKSPACE));
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
-    d.update_and_flush();
+    d.flush();
 
     match &d.mgr.sessions()[0].state {
         State::Active { app_id, workspace } => {
@@ -76,7 +76,7 @@ fn simple_idle_test() {
     let mut d = TestDriver::new();
 
     d.event(Event::ActiveWindowChanged(None));
-    d.update_and_flush();
+    d.flush();
 
     assert_eq!(d.mgr.sessions()[0].state, State::Idle);
 }
@@ -87,15 +87,15 @@ fn multiple_sessions_test() {
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(10);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("kitty".into())));
     d.advance(10);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
     d.advance(10);
-    d.update_and_flush();
+    d.flush();
 
     let sessions = d.mgr.sessions();
 
@@ -109,7 +109,7 @@ fn direct_idle_test() {
     d.event(Event::Idle(true));
     d.advance(5);
 
-    d.update_and_flush();
+    d.flush();
 
     let sessions = d.mgr.sessions();
 
@@ -125,15 +125,15 @@ fn unidle_test() {
         "Terraria.bin.x86_64".into(),
     )));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::Idle(true));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::Idle(false));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
 
     let sessions = d.mgr.sessions();
 
@@ -155,7 +155,7 @@ fn session_merge_test() {
 
     for i in 1..4 {
         d.advance(flush_interval);
-        d.update_and_flush();
+        d.flush();
 
         let sessions = d.mgr.sessions();
 
@@ -177,16 +177,16 @@ fn session_between_merging_test() {
 
     d.event(Event::ActiveWindowChanged(Some(APP_ID.to_string())));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("kitty".to_string())));
     d.advance(1);
     // do not save
-    // d.update_and_flush();
+    // d.flush();
 
     d.event(Event::ActiveWindowChanged(Some(APP_ID.to_string())));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
 
     assert_eq!(d.mgr.sessions().len(), 1, "Expected to be done merging");
     match &d.mgr.sessions()[0].state {

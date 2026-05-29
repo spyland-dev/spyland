@@ -35,7 +35,7 @@ fn hidden_applications_test() {
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
     d.tick(999999);
 
-    d.update_and_flush();
+    d.flush();
 
     assert_eq!(d.mgr.sessions().len(), 0);
 }
@@ -51,11 +51,11 @@ fn min_session_duration_test() {
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(20);
-    d.update_and_flush();
+    d.flush();
     assert_eq!(d.mgr.sessions().len(), 1);
 
     d.event(Event::ActiveWindowChanged(Some("zen".into())));
     d.advance(5);
-    d.update_and_flush();
+    d.flush();
     assert_eq!(d.mgr.sessions().len(), 1);
 }

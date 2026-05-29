@@ -19,17 +19,17 @@ fn analytic_test() {
         "org.telegram.desktop".into(),
     )));
     d.advance(12);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(12);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some(
         "org.telegram.desktop".into(),
     )));
     d.advance(12);
-    d.update_and_flush();
+    d.flush();
 
     let a = SessionAnalytics::new(d.mgr.sessions().clone());
 
@@ -44,25 +44,25 @@ fn analytic_app_time_test() {
 
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
     d.advance(16);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(14);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some(
         "org.telegram.desktop".into(),
     )));
     d.advance(20);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
     d.advance(4);
-    d.update_and_flush();
+    d.flush();
 
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
     d.advance(6);
-    d.update_and_flush();
+    d.flush();
 
     let a = SessionAnalytics::new(d.mgr.sessions().clone());
 
