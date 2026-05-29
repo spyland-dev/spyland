@@ -1,6 +1,6 @@
 <div align="center">
 
-**English** | [Русский](../ru/CONTRIBUTING.md)
+**English** | [Русский](/docs/ru/CONTRIBUTING.md)
 
 </div>
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-**English** | [Русский](../ru/README.md)
+**English** | [Русский](/docs/ru/README.md)
 
 # spyland
 
