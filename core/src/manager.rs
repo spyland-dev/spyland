@@ -53,7 +53,7 @@ pub trait Clock {
 
 /// Structure that handles [Event]s and manages [Session]s.
 pub struct SessionManager<C: Clock> {
-    current: Session,
+    current: Option<Session>,
     workspace: Option<i32>,
     clock: C,
     sessions: Vec<Session>,
@@ -78,7 +78,7 @@ pub enum Response {
     /// <div class="warning">
     ///
     /// If you want access to the session that was just created,
-    /// don't forget to call [SessionManager::update] and [SessionManager::flush].
+    /// don't forget to call [SessionManager::flush].
     ///
     /// </div>
     SessionCreated,
@@ -138,7 +138,7 @@ impl<C: Clock> SessionManager<C> {
             clock,
             workspace: None,
             old_session: None,
-            current: Session::new_empty(),
+            current: None,
             sessions: Vec::new(),
             last_flush: 0,
             config: Configuration::default(),
@@ -166,6 +166,7 @@ impl<C: Clock> SessionManager<C> {
     /// - [Event::Tick]
     ///     - [Response::Handled]
     pub fn handle_event(&mut self, event: Event) -> Response {
+        let now = self.clock.now();
         match event {
             Event::ActiveWindowChanged(a) => {
                 if let Some(ref app_id) = a {
@@ -174,15 +175,17 @@ impl<C: Clock> SessionManager<C> {
                     }
                 }
 
-                self.new_session();
-
-                self.current.state = match a {
-                    Some(app_id) => State::Active {
-                        app_id,
-                        workspace: self.workspace,
+                self.current = Some(Session {
+                    utc_start: now,
+                    utc_end: now,
+                    state: match a {
+                        Some(app_id) => State::Active {
+                            app_id,
+                            workspace: self.workspace,
+                        },
+                        None => State::Idle,
                     },
-                    None => State::Idle,
-                };
+                });
 
                 Response::SessionCreated
             }
@@ -193,68 +196,52 @@ impl<C: Clock> SessionManager<C> {
             }
             Event::Idle(idle) => {
                 if idle {
-                    if self.current.state == State::Idle {
-                        return Response::Ignored;
-                    }
+                    if let Some(current) = &mut self.current {
+                        if current.state == State::Idle {
+                            return Response::Ignored;
+                        }
 
-                    if !self.current.is_empty() {
-                        self.update();
-                        self.old_session = Some(self.current.clone());
+                        current.utc_end = now;
+                        self.old_session = Some(current.clone());
                         self.flush();
-
-                        self.current = Session::new_empty();
                     }
 
-                    self.current.utc_start = self.clock.now();
-                    self.current.state = State::Idle;
-                    self.update();
+                    self.current = Some(Session {
+                        utc_start: now,
+                        utc_end: now,
+                        state: State::Idle,
+                    });
                 } else {
-                    if self.current.state != State::Idle {
-                        return Response::Ignored;
+                    if let Some(current) = &self.current {
+                        if current.state != State::Idle {
+                            return Response::Ignored;
+                        }
+
+                        self.current = Some(Session {
+                            utc_start: now,
+                            utc_end: now,
+                            ..self.old_session.clone().unwrap()
+                        });
                     }
-
-                    self.new_session();
-
-                    self.current = self.old_session.clone().unwrap();
-                    let now = self.clock.now();
-                    self.current.utc_start = now;
-                    self.current.utc_end = now;
                 }
 
                 Response::SessionIdled(idle)
             }
             Event::Tick => {
-                let now = self.clock.now();
+                if let Some(current) = &mut self.current {
+                    current.utc_end = now;
 
-                self.update();
+                    if now - self.last_flush >= self.config.flush_interval {
+                        self.last_flush = now;
 
-                if now - self.last_flush >= self.config.flush_interval {
-                    self.last_flush = now;
-
-                    return self.flush();
+                        return self.flush();
+                    }
+                    Response::Handled
+                } else {
+                    Response::Ignored
                 }
-
-                Response::Handled
             }
         }
-    }
-
-    fn new_session(&mut self) {
-        let now = self.clock.now();
-
-        self.current = Session::new_empty();
-        self.current.utc_start = now;
-    }
-
-    /// Simply updates the end time of the current session.
-    ///
-    /// See [Self::flush].
-    pub fn update(&mut self) {
-        if self.current.is_empty() {
-            return;
-        }
-
-        self.current.utc_end = self.clock.now();
     }
 
     /// Saves the current session to the internal sessions vector.
@@ -262,17 +249,10 @@ impl<C: Clock> SessionManager<C> {
     /// This method persists the current session so it can be retrieved later via [Self::sessions].
     /// It also handles automatic merging of consecutive sessions with identical states.
     ///
-    /// <div class="warning">
-    ///
-    /// Call [Self::update] before [Self::flush] to ensure the session's end time is current.
-    ///
-    /// </div>
-    ///
     /// # Merging
     ///
     /// To prevent data fragmentation, consecutive sessions with the same [State] are automatically
-    /// merged. For example, if the user stays in the same app for an hour but [Self::update]
-    /// was called multiple times, only one merged session will be stored.
+    /// merged.
     ///
     /// # Duration Filter
     ///
@@ -287,28 +267,28 @@ impl<C: Clock> SessionManager<C> {
     /// - [Response::Flushed] --- flush succeeded with the `merged` field indicating
     ///   whether this session was merged with the previous one
     pub fn flush(&mut self) -> Response {
-        if self.current.is_empty() {
-            return Response::Ignored;
-        }
+        if let Some(current) = &mut self.current {
+            current.utc_end = self.clock.now();
 
-        let current = self.current.clone();
-
-        if self.config.min_session_duration != 0 {
-            if (current.utc_end - current.utc_start) <= self.config.min_session_duration {
-                return Response::Ignored;
+            if self.config.min_session_duration != 0 {
+                if (current.utc_end - current.utc_start) <= self.config.min_session_duration {
+                    return Response::Ignored;
+                }
             }
-        }
 
-        if let Some(last) = self.sessions.last_mut() {
-            if last.state == current.state {
-                last.utc_end = current.utc_end;
-                return Response::Flushed { merged: true };
+            if let Some(last) = self.sessions.last_mut() {
+                if last.state == current.state {
+                    last.utc_end = current.utc_end;
+                    return Response::Flushed { merged: true };
+                }
             }
+
+            self.sessions.push(current.clone());
+
+            Response::Flushed { merged: false }
+        } else {
+            Response::Ignored
         }
-
-        self.sessions.push(current);
-
-        Response::Flushed { merged: false }
     }
 
     /// Returns the currently applied [Configuration].
@@ -324,7 +304,7 @@ impl<C: Clock> SessionManager<C> {
     /// Returns all saved sessions.
     ///
     /// This returns a reference to the internal vector of persisted sessions.
-    /// To ensure all current activity is included, call [Self::update] and [Self::flush]
+    /// To ensure all current activity is included, call [Self::flush]
     /// before this method (unless an automatic flush has just occurred on [Event::Tick]).
     ///
     /// <div class="warning">
@@ -345,7 +325,6 @@ impl<C: Clock> SessionManager<C> {
     /// }
     ///
     /// let mut manager = SessionManager::new(MockClock { time: 0 });
-    /// manager.update();
     /// manager.flush();
     ///
     /// let sessions = manager.sessions();

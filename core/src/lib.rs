@@ -37,22 +37,6 @@ pub struct Session {
     pub state: State,
 }
 
-impl Session {
-    /// FIX: TO BE DELETED
-    pub fn new_empty() -> Self {
-        Self {
-            utc_start: 0,
-            utc_end: 0,
-            state: State::Empty,
-        }
-    }
-
-    /// FIX: TO BE DELETED
-    pub fn is_empty(&self) -> bool {
-        self.utc_start <= 0 && self.utc_end <= 0 && self.state == State::Empty
-    }
-}
-
 /// User state abstraction.
 ///
 /// Represents what the user is currently doing or their activity status.
@@ -76,10 +60,6 @@ pub enum State {
     /// This typically occurs when the screensaver activates or a window loses focus
     /// without another window gaining it.
     Idle,
-    /// Internal state: session has not been initialized.
-    ///
-    /// FIX: TO BE DELETED
-    Empty,
 }
 
 /// An abstraction of events from a Wayland compositor.
