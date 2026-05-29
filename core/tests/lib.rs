@@ -33,8 +33,8 @@ fn session_time_test() {
     // not needed because of automatic update()
     // and refresh() in SessionManager
 
-    assert_eq!(d.mgr.sessions()[0].utc_start, 1, "Incorrect start time");
-    assert_eq!(d.mgr.sessions()[0].utc_end, TIME, "Incorrect end time");
+    assert_eq!(d.mgr.sessions()[0].start, 1, "Incorrect start time");
+    assert_eq!(d.mgr.sessions()[0].end, TIME, "Incorrect end time");
 }
 
 #[test]
@@ -139,8 +139,8 @@ fn unidle_test() {
 
     assert_eq!(sessions.len(), 3);
     assert_eq!(sessions[0].state, sessions[2].state);
-    assert_eq!(sessions[2].utc_start, 11, "utc_start not matching");
-    assert_eq!(sessions[2].utc_end, 16, "utc_end not matching");
+    assert_eq!(sessions[2].start, 11, "utc_start not matching");
+    assert_eq!(sessions[2].end, 16, "utc_end not matching");
 }
 
 #[test]
@@ -160,12 +160,8 @@ fn session_merge_test() {
         let sessions = d.mgr.sessions();
 
         assert_eq!(sessions.len(), 1, "not one session");
-        assert_eq!(sessions[0].utc_start, 1, "invalid utc_start");
-        assert_eq!(
-            sessions[0].utc_end,
-            1 + flush_interval * i,
-            "invalid utc_end"
-        );
+        assert_eq!(sessions[0].start, 1, "invalid utc_start");
+        assert_eq!(sessions[0].end, 1 + flush_interval * i, "invalid utc_end");
     }
 }
 

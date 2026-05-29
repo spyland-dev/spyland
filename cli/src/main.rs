@@ -136,7 +136,7 @@ async fn sessions() -> Result<()> {
     for session in sessions {
         println!("|\n|");
 
-        let dt = OffsetDateTime::from_unix_timestamp(session.utc_start as i64)?;
+        let dt = OffsetDateTime::from_unix_timestamp(session.start as i64)?;
 
         {
             let odt = OffsetDateTime::from_unix_timestamp(old_start)?;
@@ -162,7 +162,7 @@ async fn sessions() -> Result<()> {
 
                 dt.to_offset(offset).format(&format)?
             },
-            human_duration(session.utc_end - session.utc_start)
+            human_duration(session.end - session.start)
         );
 
         match &session.state {
@@ -178,7 +178,7 @@ async fn sessions() -> Result<()> {
             }
         }
 
-        old_start = session.utc_start as i64;
+        old_start = session.start as i64;
     }
 
     Ok(())

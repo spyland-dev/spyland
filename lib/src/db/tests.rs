@@ -17,8 +17,8 @@ async fn insert_test(pool: SqlitePool) {
     db.create().await.unwrap();
 
     let session = Session {
-        utc_start: 1,
-        utc_end: 16,
+        start: 1,
+        end: 16,
         state: State::Active {
             app_id: "example_test_app_id".into(),
             workspace: None,
@@ -42,8 +42,8 @@ async fn insert_integrity_test(pool: SqlitePool) {
     const WORKSPACE: i32 = 3;
 
     let session = Session {
-        utc_start: START,
-        utc_end: END,
+        start: START,
+        end: END,
         state: State::Active {
             app_id: APP_ID.into(),
             workspace: Some(WORKSPACE),
@@ -75,8 +75,8 @@ fn session_mapping_test() {
     const WORKSPACE: i32 = 2;
 
     let session = Session {
-        utc_start: START,
-        utc_end: END,
+        start: START,
+        end: END,
 
         state: State::Active {
             app_id: APP_ID.into(),
@@ -94,8 +94,8 @@ fn session_mapping_test() {
 
     let session2: Session = session_sql.into();
 
-    assert_eq!(session2.utc_start, START);
-    assert_eq!(session2.utc_end, END);
+    assert_eq!(session2.start, START);
+    assert_eq!(session2.end, END);
     assert!(matches!(
         session2.state,
         State::Active {
@@ -112,8 +112,8 @@ async fn update_by_rowid_test(pool: SqlitePool) {
     db.create().await.unwrap();
 
     let session1 = Session {
-        utc_start: 1,
-        utc_end: 16,
+        start: 1,
+        end: 16,
         state: State::Active {
             app_id: "firefox".into(),
             workspace: Some(1),
@@ -151,8 +151,8 @@ async fn update_last_test(pool: SqlitePool) {
     const S1_END: u64 = 20;
 
     let session1 = Session {
-        utc_start: 1,
-        utc_end: S1_END,
+        start: 1,
+        end: S1_END,
         state: State::Active {
             app_id: "firefox".into(),
             workspace: None,
@@ -164,8 +164,8 @@ async fn update_last_test(pool: SqlitePool) {
     const S2_END: u64 = 60;
 
     let session2 = Session {
-        utc_start: START,
-        utc_end: 40,
+        start: START,
+        end: 40,
         state: State::Active {
             app_id: APP_ID.into(),
             workspace: Some(2),

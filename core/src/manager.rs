@@ -176,8 +176,8 @@ impl<C: Clock> SessionManager<C> {
                 }
 
                 self.current = Some(Session {
-                    utc_start: now,
-                    utc_end: now,
+                    start: now,
+                    end: now,
                     state: match a {
                         Some(app_id) => State::Active {
                             app_id,
@@ -201,14 +201,14 @@ impl<C: Clock> SessionManager<C> {
                             return Response::Ignored;
                         }
 
-                        current.utc_end = now;
+                        current.end = now;
                         self.old_session = Some(current.clone());
                         self.flush();
                     }
 
                     self.current = Some(Session {
-                        utc_start: now,
-                        utc_end: now,
+                        start: now,
+                        end: now,
                         state: State::Idle,
                     });
                 } else {
@@ -218,8 +218,8 @@ impl<C: Clock> SessionManager<C> {
                         }
 
                         self.current = Some(Session {
-                            utc_start: now,
-                            utc_end: now,
+                            start: now,
+                            end: now,
                             ..self.old_session.clone().unwrap()
                         });
                     }
@@ -229,7 +229,7 @@ impl<C: Clock> SessionManager<C> {
             }
             Event::Tick => {
                 if let Some(current) = &mut self.current {
-                    current.utc_end = now;
+                    current.end = now;
 
                     if now - self.last_flush >= self.config.flush_interval {
                         self.last_flush = now;
@@ -268,17 +268,17 @@ impl<C: Clock> SessionManager<C> {
     ///   whether this session was merged with the previous one
     pub fn flush(&mut self) -> Response {
         if let Some(current) = &mut self.current {
-            current.utc_end = self.clock.now();
+            current.end = self.clock.now();
 
             if self.config.min_session_duration != 0 {
-                if (current.utc_end - current.utc_start) <= self.config.min_session_duration {
+                if (current.end - current.start) <= self.config.min_session_duration {
                     return Response::Ignored;
                 }
             }
 
             if let Some(last) = self.sessions.last_mut() {
                 if last.state == current.state {
-                    last.utc_end = current.utc_end;
+                    last.end = current.end;
                     return Response::Flushed { merged: true };
                 }
             }

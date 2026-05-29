@@ -28,16 +28,16 @@ impl SessionAnalytics {
     ///
     /// let sessions = vec![
     ///     Session {
-    ///         utc_start: 100,
-    ///         utc_end: 130,
+    ///         start: 100,
+    ///         end: 130,
     ///         state: State::Active {
     ///             app_id: "firefox".to_string(),
     ///             workspace: Some(1),
     ///         },
     ///     },
     ///     Session {
-    ///         utc_start: 130,
-    ///         utc_end: 150,
+    ///         start: 130,
+    ///         end: 150,
     ///         state: State::Idle,
     ///     },
     /// ];
@@ -60,13 +60,13 @@ impl SessionAnalytics {
     ///
     /// let sessions = vec![
     ///     Session {
-    ///         utc_start: 0,
-    ///         utc_end: 50,
+    ///         start: 0,
+    ///         end: 50,
     ///         state: State::Idle
     ///     },
     ///     Session {
-    ///         utc_start: 50,
-    ///         utc_end: 120,
+    ///         start: 50,
+    ///         end: 120,
     ///         state: State::Active {
     ///             app_id: "app".to_string(),
     ///             workspace: None
@@ -81,7 +81,7 @@ impl SessionAnalytics {
         let mut counter: u64 = 0;
 
         for s in &self.sessions {
-            counter += s.utc_end - s.utc_start;
+            counter += s.end - s.start;
         }
 
         counter
@@ -108,7 +108,7 @@ impl SessionAnalytics {
         for s in &self.sessions {
             if let State::Active { app_id, .. } = &s.state {
                 if *app_id == target_app_id {
-                    counter += s.utc_end - s.utc_start;
+                    counter += s.end - s.start;
                 }
             }
         }
@@ -133,7 +133,7 @@ impl SessionAnalytics {
 
         for s in &self.sessions {
             if let State::Idle = &s.state {
-                counter += s.utc_end - s.utc_start;
+                counter += s.end - s.start;
             }
         }
 
@@ -162,7 +162,7 @@ impl SessionAnalytics {
 
         for s in &self.sessions {
             if let State::Active { app_id, .. } = &s.state {
-                let duration = s.utc_end - s.utc_start;
+                let duration = s.end - s.start;
 
                 hash_map
                     .entry(app_id.to_owned())

@@ -26,12 +26,12 @@ pub struct Session {
     /// Session start time (UNIX timestamp in seconds).
     ///
     /// The exact format depends on the [Clock](manager::Clock) implementation.
-    pub utc_start: u64, // TODO: RENAME TO `start`
+    pub start: u64,
 
     /// Session end time (UNIX timestamp in seconds).
     ///
     /// The exact format depends on the [Clock](manager::Clock) implementation.
-    pub utc_end: u64, // TODO: RENAME TO `end`
+    pub end: u64,
 
     /// User state during this session.
     pub state: State,
