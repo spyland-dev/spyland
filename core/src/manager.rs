@@ -242,11 +242,6 @@ impl<C: Clock> SessionManager<C> {
     fn new_session(&mut self) {
         let now = self.clock.now();
 
-        if !self.current.is_empty() {
-            self.update();
-            self.flush();
-        }
-
         self.current = Session::new_empty();
         self.current.utc_start = now;
     }
