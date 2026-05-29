@@ -87,13 +87,14 @@ fn multiple_sessions_test() {
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.advance(10);
+    d.update_and_flush();
 
     d.event(Event::ActiveWindowChanged(Some("kitty".into())));
     d.advance(10);
+    d.update_and_flush();
 
     d.event(Event::ActiveWindowChanged(Some("alacritty".into())));
     d.advance(10);
-
     d.update_and_flush();
 
     let sessions = d.mgr.sessions();
@@ -124,13 +125,14 @@ fn unidle_test() {
         "Terraria.bin.x86_64".into(),
     )));
     d.advance(5);
+    d.update_and_flush();
 
     d.event(Event::Idle(true));
     d.advance(5);
+    d.update_and_flush();
 
     d.event(Event::Idle(false));
     d.advance(5);
-
     d.update_and_flush();
 
     let sessions = d.mgr.sessions();
