@@ -166,3 +166,32 @@ fn session_merge_test() {
         );
     }
 }
+
+#[test]
+fn session_between_merging_test() {
+    let mut d = TestDriver::new();
+
+    const APP_ID: &str = "steam";
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID.to_string())));
+    d.advance(5);
+    d.update_and_flush();
+
+    d.event(Event::ActiveWindowChanged(Some("kitty".to_string())));
+    d.advance(1);
+    // do not save
+    // d.update_and_flush();
+
+    d.event(Event::ActiveWindowChanged(Some(APP_ID.to_string())));
+    d.advance(5);
+    d.update_and_flush();
+
+    assert_eq!(d.mgr.sessions().len(), 1, "Expected to be done merging");
+    match &d.mgr.sessions()[0].state {
+        State::Active {
+            app_id,
+            workspace: _,
+        } => assert_eq!(*app_id, APP_ID.to_string()),
+        _ => panic!("Unexpected session state"),
+    }
+}
