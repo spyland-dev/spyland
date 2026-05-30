@@ -162,9 +162,11 @@ impl<C: Clock> SessionManager<C> {
     ///     - [Response::Handled] --- the workspace changed successfully (no other responses).
     /// - [Event::Idle]
     ///     - [Response::SessionIdled]
+    ///     - [Response::Handled] --- idle session created without idling current session
     ///     - [Response::Ignored] --- the session is already idle/non-idle.
     /// - [Event::Tick]
     ///     - [Response::Handled]
+    ///     - [Response::Ignored] --- nothing to flush
     pub fn handle_event(&mut self, event: Event) -> Response {
         let now = self.clock.now();
         match event {
@@ -196,7 +198,7 @@ impl<C: Clock> SessionManager<C> {
             }
             Event::Idle(idle) => {
                 if idle {
-                    if let Some(current) = &mut self.current {
+                    let response = if let Some(current) = &mut self.current {
                         if current.state == State::Idle {
                             return Response::Ignored;
                         }
@@ -204,28 +206,40 @@ impl<C: Clock> SessionManager<C> {
                         current.end = now;
                         self.old_session = Some(current.clone());
                         self.flush();
-                    }
+                        Response::SessionIdled(true)
+                    } else {
+                        // There is nothing to "idle"
+                        Response::Handled
+                    };
 
                     self.current = Some(Session {
                         start: now,
                         end: now,
                         state: State::Idle,
                     });
+
+                    return response;
                 } else {
                     if let Some(current) = &self.current {
                         if current.state != State::Idle {
                             return Response::Ignored;
                         }
 
-                        self.current = Some(Session {
-                            start: now,
-                            end: now,
-                            ..self.old_session.clone().unwrap()
-                        });
+                        if let Some(old_session) = &self.old_session {
+                            self.current = Some(Session {
+                                start: now,
+                                end: now,
+                                ..old_session.clone()
+                            });
+                            Response::SessionIdled(false)
+                        } else {
+                            // There is nothing to "unidle"
+                            Response::Handled
+                        }
+                    } else {
+                        Response::Ignored
                     }
                 }
-
-                Response::SessionIdled(idle)
             }
             Event::Tick => {
                 if let Some(current) = &mut self.current {
