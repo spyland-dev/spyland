@@ -64,6 +64,63 @@ Just like bug fixes: if you fix a bug, please write a test for the it.
 If you think you don't need them in your case, open an issue
 or include a justification in the PR.
 
+### Constants
+
+By looking at the test code, you may find that constants are used frequently.
+For test code, we have a rule: if you use the same value compile time multiple times
+(e.g. for data validation), then declare constant inside the function and use it
+instead of the same values. This is done for the correctness of the data and to
+indicate the relationship.
+
+**Incorrect**, not using constants — "magic" values:
+```rust
+d.event(Event::WorkspaceChanged(2));
+d.event(Event::ActiveWindowChanged(Some("discord".into())));
+d.flush();
+
+match &d.mgr.sessions()[0].state {
+    State::Active { app_id, workspace } => {
+        assert_eq!("discord", app_id, "app_id not matching");
+        assert_eq!(
+            2,
+            workspace.expect("workspace is none"),
+            "workspace not matching"
+        );
+    }
+    _ => panic!("Incorrect state"),
+}
+```
+**Incorrect**, only one using — no relationship:
+```rust
+const APP_ID: &str = "firefox";
+
+d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
+d.flush();
+
+assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
+```
+**Correct**, there is constants and relationship:
+```rust
+const WORKSPACE: i32 = 1;
+const APP_ID: &str = "firefox";
+
+d.event(Event::WorkspaceChanged(WORKSPACE));
+d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
+d.flush();
+
+match &d.mgr.sessions()[0].state {
+    State::Active { app_id, workspace } => {
+        assert_eq!(APP_ID, app_id, "app_id not matching");
+        assert_eq!(
+            WORKSPACE,
+            workspace.expect("workspace is none"),
+            "workspace not matching"
+        );
+    }
+    _ => panic!("Incorrect state"),
+}
+```
+
 ## Artificial Intelligence
 
 Using AI is allowed, but under your strict control. You must:

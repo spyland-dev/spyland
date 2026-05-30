@@ -67,6 +67,63 @@ use std::sync::mpsc;
 Если вы считаете, что в вашем случае они не нужны откройте issue
 или включите в PR обоснование.
 
+### Константы
+
+Рассматривая код тестов, вы можете обнаружить частое использование констант.
+Для кода тестов у нас есть правило: если вы используете одно и тоже значение
+времени компиляции несколько раз (например для валидации данных), то объявите
+константу внутри функции и используйте именно её, вместо одинаковых значений.
+Это сделано для корректности данных и обозначения взаимосвязи.
+
+**Неправильно**, не используется константы — "волшебные" значения:
+```rust
+d.event(Event::WorkspaceChanged(2));
+d.event(Event::ActiveWindowChanged(Some("discord".into())));
+d.flush();
+
+match &d.mgr.sessions()[0].state {
+    State::Active { app_id, workspace } => {
+        assert_eq!("discord", app_id, "app_id not matching");
+        assert_eq!(
+            2,
+            workspace.expect("workspace is none"),
+            "workspace not matching"
+        );
+    }
+    _ => panic!("Incorrect state"),
+}
+```
+**Неправильно**, используется всего один раз — нет взаимосвязи:
+```rust
+const APP_ID: &str = "firefox";
+
+d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
+d.flush();
+
+assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
+```
+**Правильно**, используется константы, есть взаимосвязь:
+```rust
+const WORKSPACE: i32 = 1;
+const APP_ID: &str = "firefox";
+
+d.event(Event::WorkspaceChanged(WORKSPACE));
+d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
+d.flush();
+
+match &d.mgr.sessions()[0].state {
+    State::Active { app_id, workspace } => {
+        assert_eq!(APP_ID, app_id, "app_id not matching");
+        assert_eq!(
+            WORKSPACE,
+            workspace.expect("workspace is none"),
+            "workspace not matching"
+        );
+    }
+    _ => panic!("Incorrect state"),
+}
+```
+
 ## Искусственный интеллект
 
 Использование ИИ разрешено, но под вашим строгим контролем. Вы должны:
