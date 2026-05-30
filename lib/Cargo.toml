@@ -17,5 +17,4 @@ spyland-core = { version = "0.1.0", path = "../core", optional = true }
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"], optional = true }
 
 [dev-dependencies]
-sqlx = { version = "0.8.6", features = ["runtime-tokio"] }
 tempfile = "3.27.0"
