@@ -65,6 +65,7 @@ pub struct SessionManager<C: Clock> {
 /// The [SessionManager] response.
 ///
 /// It indicates what happens after [handling](SessionManager::handle_event) the [event](Event).
+#[derive(Debug, PartialEq)]
 pub enum Response {
     /// The event was successfully processed with no additional information.
     Handled,

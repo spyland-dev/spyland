@@ -8,7 +8,7 @@
 #![allow(dead_code)]
 
 use spyland_core::Event;
-use spyland_core::manager::{Clock, Configuration, SessionManager};
+use spyland_core::manager::{Clock, Configuration, Response, SessionManager};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -54,8 +54,8 @@ impl TestDriver {
         self.mgr.handle_event(Event::Tick);
     }
 
-    pub fn event(&mut self, ev: Event) {
-        self.mgr.handle_event(ev);
+    pub fn event(&mut self, ev: Event) -> Response {
+        self.mgr.handle_event(ev)
     }
 
     pub fn flush(&mut self) {
