@@ -13,6 +13,11 @@ use std::os::unix::net::UnixStream;
 use anyhow::Result;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
+/// A protocol version.
+///
+/// Used in [handshake](Request::Handshake) between backend and the daemon.
+pub const VERSION: u32 = 0;
+
 /// Request from the client.
 ///
 /// Uses to request action for the server.
