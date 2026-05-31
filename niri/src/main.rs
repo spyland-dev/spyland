@@ -7,8 +7,6 @@
 
 use log::info;
 
-mod backend;
-
 fn main() {
     env_logger::init();
 
