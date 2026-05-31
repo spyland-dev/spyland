@@ -4,75 +4,65 @@
  *  Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
-use log::{error, warn};
-use niri_ipc::socket::Socket;
-use niri_ipc::{Event as NiriEvent, Request, Response, Window};
-use spyland_core::{Backend, Event};
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use std::path::PathBuf;
-use std::sync::mpsc;
-use std::thread;
+
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    path::PathBuf,
+};
+
+use anyhow::{Context, Result};
+use log::warn;
+use niri_ipc::{Event as NiriEvent, Request as NiriRequest, Window, socket::Socket};
+use spyland_core::Event as CoreEvent;
+use spyland_lib::{
+    ipc::{
+        IpcClient,
+        protocol::{self, Request as IpcRequest, Response as IpcResponse},
+    },
+    path,
+};
 
 pub struct NiriBackend {
     socket_path: Option<PathBuf>,
+    client: IpcClient,
 }
 
 impl NiriBackend {
-    pub fn new(socket_path: PathBuf) -> Self {
-        Self {
-            socket_path: Some(socket_path),
-        }
-    }
-}
-
-impl Default for NiriBackend {
-    fn default() -> Self {
-        Self { socket_path: None }
-    }
-}
-
-impl Backend for NiriBackend {
-    fn is_available(&self) -> bool {
-        match &self.socket_path {
-            Some(p) => Socket::connect_to(p),
-            None => Socket::connect(),
-        }
-        .is_ok()
+    pub fn new(niri_socket_path: PathBuf, ipc_socket_path: PathBuf) -> Result<Self> {
+        Ok(Self {
+            socket_path: Some(niri_socket_path),
+            client: IpcClient::new(ipc_socket_path)?,
+        })
     }
 
-    fn subscribe(&mut self) -> mpsc::Receiver<spyland_core::Event> {
-        let (tx, rx) = mpsc::channel();
-
-        let path = self.socket_path.clone();
-        thread::spawn(move || {
-            run(tx, path);
-        });
-
-        rx
+    pub fn try_default() -> Result<Self> {
+        Ok(Self {
+            socket_path: None,
+            client: IpcClient::new(path::ensure_socket_path()?)?,
+        })
     }
-}
 
-macro_rules! send_event {
-    ($tx:expr, $event:expr) => {
-        if $tx.send($event).is_err() {
-            error!("failed to send event");
-            break;
-        }
-    };
-}
+    pub fn run(mut self) -> Result<()> {
+        let response = self
+            .client
+            .send_with_response(IpcRequest::Handshake {
+                protocol_version: protocol::VERSION,
+                backend_name: "niri".into(),
+            })
+            .context("Failed to handshake daemon")?;
 
-fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
-    let mut event_socket = socket_path
-        .as_ref()
-        .map_or_else(Socket::connect, |p| Socket::connect_to(p))
-        .expect("failed to connect to niri");
+        let mut event_socket = self
+            .socket_path
+            .as_ref()
+            .map_or_else(Socket::connect, |p| Socket::connect_to(p))
+            .context("Failed to connect to niri")?;
 
-    let reply = event_socket
-        .send(Request::EventStream)
-        .expect("failed to send request to niri");
+        event_socket
+            .send(NiriRequest::EventStream)
+            .context("Failed to send request to niri")?
+            .ok()
+            .context("Request return an error")?;
 
-    if matches!(reply, Ok(Response::Handled)) {
         let mut read_event = event_socket.read_events();
         let mut windows: HashMap<u64, Window> = HashMap::new();
         loop {
@@ -84,7 +74,9 @@ fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
                         for window in niri_windows {
                             windows.insert(window.id, window.clone());
                             if window.is_focused {
-                                send_event!(tx, Event::ActiveWindowChanged(window.app_id));
+                                self.client.send(IpcRequest::Event(
+                                    CoreEvent::ActiveWindowChanged(window.app_id),
+                                ))?;
                             }
                         }
                     }
@@ -107,29 +99,34 @@ fn run(tx: mpsc::Sender<Event>, socket_path: Option<PathBuf>) {
                             for w in windows.values_mut() {
                                 if w.id == id {
                                     w.is_focused = true;
-                                    send_event!(tx, Event::ActiveWindowChanged(w.app_id.clone()));
+                                    self.client.send(IpcRequest::Event(
+                                        CoreEvent::ActiveWindowChanged(w.app_id.clone()),
+                                    ))?;
                                     break;
                                 }
                             }
                         }
                         None => {
-                            send_event!(tx, Event::ActiveWindowChanged(None));
+                            self.client
+                                .send(IpcRequest::Event(CoreEvent::ActiveWindowChanged(None)))?;
                         }
                     },
                     NiriEvent::WorkspacesChanged { workspaces } => {
                         for workspace in workspaces {
                             if workspace.is_focused {
-                                send_event!(
-                                    tx,
-                                    Event::WorkspaceChanged(workspace.id.try_into().unwrap())
-                                );
+                                self.client.send(IpcRequest::Event(
+                                    CoreEvent::WorkspaceChanged(workspace.id.try_into().unwrap()),
+                                ))?;
                                 break;
                             }
                         }
                     }
                     NiriEvent::WorkspaceActivated { id, focused } => {
                         if focused {
-                            send_event!(tx, Event::WorkspaceChanged(id.try_into().unwrap()))
+                            self.client
+                                .send(IpcRequest::Event(CoreEvent::WorkspaceChanged(
+                                    id.try_into().unwrap(),
+                                )))?;
                         }
                     }
                     _ => {}
