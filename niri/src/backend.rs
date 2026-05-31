@@ -17,7 +17,7 @@ use spyland_core::Event as CoreEvent;
 use spyland_lib::{
     ipc::{
         IpcClient,
-        protocol::{self, Request as IpcRequest, Response as IpcResponse},
+        protocol::{self, Request as IpcRequest},
     },
     path,
 };
@@ -38,13 +38,12 @@ impl NiriBackend {
     pub fn try_default() -> Result<Self> {
         Ok(Self {
             socket_path: None,
-            client: IpcClient::new(path::ensure_socket_path()?)?,
+            client: IpcClient::new(path::get_socket_path()?)?,
         })
     }
 
     pub fn run(mut self) -> Result<()> {
-        let response = self
-            .client
+        self.client
             .send_with_response(IpcRequest::Handshake {
                 protocol_version: protocol::VERSION,
                 backend_name: "niri".into(),
