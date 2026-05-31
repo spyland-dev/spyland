@@ -63,6 +63,7 @@ pub enum State {
 }
 
 /// An abstraction of events from a Wayland compositor.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq)]
 pub enum Event {
     /// The focus of the window changed.

@@ -16,17 +16,37 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 /// Request from the client.
 ///
 /// Uses to request action for the server.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Request {
     /// A simple request that means checking the connection.
     Ping,
+
+    /// A connection request from the backend to the daemon.
+    Handshake {
+        /// Backend protocol version.
+        protocol_version: u32,
+        /// Name of the backend.
+        backend_name: String,
+    },
+
+    /// An event received from the backend.
+    Event(spyland_core::Event),
 }
 
 /// Response from the server.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Response {
     /// A simple response that means connection is works.
     Pong,
+
+    /// A response from the daemon to the backend.
+    Handshake {
+        /// Server protocol version.
+        protocol_version: u32,
+    },
+
+    /// A [spyland_core::manager::SessionManager] response received as an answer to [Request::Event].
+    EventResponse(spyland_core::manager::Response),
 }
 
 /// Low-level function, used to send `serializable` to `stream`.
