@@ -32,6 +32,8 @@ pub enum Request {
         protocol_version: u32,
         /// Name of the backend.
         backend_name: String,
+        /// Path to backend executable.
+        executable_path: Option<String>,
     },
 
     /// An event received from the backend.

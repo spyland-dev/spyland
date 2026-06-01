@@ -47,6 +47,13 @@ impl NiriBackend {
             .send_with_response(IpcRequest::Handshake {
                 protocol_version: protocol::VERSION,
                 backend_name: "niri".into(),
+                executable_path: Some(
+                    std::env::current_exe()
+                        .context("Failed to get own executable path!")?
+                        .into_os_string()
+                        .into_string()
+                        .unwrap(),
+                ),
             })
             .context("Failed to handshake daemon")?;
 

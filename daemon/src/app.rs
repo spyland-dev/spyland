@@ -118,10 +118,12 @@ impl<C: Clock + Send + 'static> App<C> {
                 IpcRequest::Handshake {
                     protocol_version,
                     backend_name,
+                    executable_path,
                 } => {
                     info!(
                         "New backend wants establish the connection! '{backend_name}' ({protocol_version})"
                     );
+                    // TODO: REGISTER BACKEND
                     IpcResponse::Handshake {
                         protocol_version: protocol::VERSION,
                     }
