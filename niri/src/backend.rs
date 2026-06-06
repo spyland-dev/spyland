@@ -17,7 +17,7 @@ use spyland_core::Event as CoreEvent;
 use spyland_lib::{
     ipc::{
         IpcClient,
-        protocol::{self, Request as IpcRequest},
+        protocol::{self, Request as IpcRequest, Response as IpcResponse},
     },
     path,
 };
@@ -43,12 +43,25 @@ impl NiriBackend {
     }
 
     pub fn run(mut self) -> Result<()> {
-        self.client
+        let response = self
+            .client
             .send_with_response(IpcRequest::Handshake {
                 protocol_version: protocol::VERSION,
                 backend_name: "niri".into(),
             })
             .context("Failed to handshake daemon")?;
+
+        if let IpcResponse::Handshake {
+            protocol_version: _,
+            is_accepted,
+        } = response
+        {
+            if !is_accepted {
+                anyhow::bail!("Server was reject the connection.");
+            }
+        } else {
+            anyhow::bail!("Unexpected response from the server.");
+        }
 
         let mut event_socket = self
             .socket_path
