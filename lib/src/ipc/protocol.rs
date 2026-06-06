@@ -48,6 +48,9 @@ pub enum Response {
     Handshake {
         /// Server protocol version.
         protocol_version: u32,
+        /// Determines if the server accepted your connection. If not,
+        /// then you and the server's protocol version are incompatible.
+        is_accepted: bool,
     },
 
     /// A [spyland_core::manager::SessionManager] response received as an answer to [Request::Event].
