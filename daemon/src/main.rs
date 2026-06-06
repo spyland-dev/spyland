@@ -40,6 +40,10 @@ struct Cli {
     #[arg(short = 'C', long)]
     config: Option<PathBuf>,
 
+    /// Path to executable backend to start
+    #[arg(short = 'B', long, env = "SPYLAND_BACKEND")]
+    backend: Option<PathBuf>,
+
     /// Sets log level
     #[arg(short, long, env = "RUST_LOG")]
     log_level: Option<log::LevelFilter>,
@@ -56,6 +60,14 @@ async fn main() -> Result<()> {
     }
 
     builder.init();
+
+    if let Some(backend) = args.backend {
+        use std::process::Command;
+
+        info!("Starting new backend '{}'", backend.display());
+
+        Command::new(backend).spawn()?;
+    }
 
     info!("Starting spyland daemon...");
 
