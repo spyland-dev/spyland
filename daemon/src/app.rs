@@ -119,11 +119,22 @@ impl<C: Clock + Send + 'static> App<C> {
                     protocol_version,
                     backend_name,
                 } => {
-                    info!(
-                        "New backend wants establish the connection! '{backend_name}' ({protocol_version})"
-                    );
+                    let is_accepted = protocol_version <= protocol::VERSION;
+                    match is_accepted {
+                        true => {
+                            info!("The '{backend_name}' backend is accepted! ({protocol_version})")
+                        }
+                        false => {
+                            warn!(
+                                "The '{backend_name}' backend was rejected due to version incompatibility.",
+                            );
+                            warn!("{protocol_version} > {}", protocol::VERSION);
+                        }
+                    }
+
                     IpcResponse::Handshake {
                         protocol_version: protocol::VERSION,
+                        is_accepted,
                     }
                 }
                 IpcRequest::Event(event) => {
