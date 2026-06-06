@@ -1,0 +1,19 @@
+[Unit]
+Description=screen time tracking daemon
+Documentation=https://github.com/NonExistPlayer/spyland
+After=graphical-session.target
+PartOf=graphical-session.target
+Wants=spyland-backends.target
+BindsTo=spyland-backends.target
+
+[Service]
+Type=simple
+ExecStart=spylandd -l info
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spylandd
+
+[Install]
+WantedBy=graphical-session.target
