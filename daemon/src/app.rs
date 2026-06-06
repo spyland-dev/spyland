@@ -23,7 +23,7 @@ use spyland_lib::{
 };
 
 use anyhow::{Context, Result};
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::time::interval;
 
 pub struct App<C: Clock> {
@@ -101,6 +101,8 @@ impl<C: Clock + Send + 'static> App<C> {
     fn ipc_server(mut server: IpcServer, session_manager: Arc<Mutex<SessionManager<C>>>) {
         trace!("ipc_server()");
 
+        info!("Waiting for backend...");
+
         loop {
             let conn = server.accept().expect("Accept new connection failed");
 
@@ -112,37 +114,47 @@ impl<C: Clock + Send + 'static> App<C> {
     }
 
     fn connection_handler(conn: IpcConnection, session_manager: Arc<Mutex<SessionManager<C>>>) {
-        while let Ok(request) = conn.read() {
-            let response = match request {
-                IpcRequest::Ping => IpcResponse::Pong,
-                IpcRequest::Handshake {
-                    protocol_version,
-                    backend_name,
-                } => {
-                    let is_accepted = protocol_version <= protocol::VERSION;
-                    match is_accepted {
-                        true => {
-                            info!("The '{backend_name}' backend is accepted! ({protocol_version})")
-                        }
-                        false => {
-                            warn!(
-                                "The '{backend_name}' backend was rejected due to version incompatibility.",
-                            );
-                            warn!("{protocol_version} > {}", protocol::VERSION);
-                        }
-                    }
+        loop {
+            match conn.read() {
+                Ok(request) => {
+                    let response = match request {
+                        IpcRequest::Ping => IpcResponse::Pong,
+                        IpcRequest::Handshake {
+                            protocol_version,
+                            backend_name,
+                        } => {
+                            let is_accepted = protocol_version <= protocol::VERSION;
+                            match is_accepted {
+                                true => {
+                                    info!(
+                                        "The '{backend_name}' backend is accepted! Protocol version: {protocol_version}"
+                                    )
+                                }
+                                false => {
+                                    warn!(
+                                        "The '{backend_name}' backend was rejected due to version incompatibility.",
+                                    );
+                                    debug!("{protocol_version} > {}", protocol::VERSION);
+                                }
+                            }
 
-                    IpcResponse::Handshake {
-                        protocol_version: protocol::VERSION,
-                        is_accepted,
-                    }
-                }
-                IpcRequest::Event(event) => {
-                    IpcResponse::EventResponse(session_manager.lock().unwrap().handle_event(event))
-                }
-            };
+                            IpcResponse::Handshake {
+                                protocol_version: protocol::VERSION,
+                                is_accepted,
+                            }
+                        }
+                        IpcRequest::Event(event) => IpcResponse::EventResponse(
+                            session_manager.lock().unwrap().handle_event(event),
+                        ),
+                    };
 
-            conn.send(response).expect("Failed to send response");
+                    conn.send(response).expect("Failed to send response");
+                }
+                Err(err) => {
+                    warn!("Read failed: '{err:#}'. Connection will be shutdown.");
+                    break;
+                }
+            }
         }
     }
 }
