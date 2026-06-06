@@ -141,6 +141,7 @@ impl TestDriver {
         connection
             .send(protocol::Response::Handshake {
                 protocol_version: protocol::VERSION,
+                is_accepted: true,
             })
             .expect("Failed to send request");
 
