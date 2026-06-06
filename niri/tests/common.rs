@@ -129,12 +129,15 @@ impl TestDriver {
 
         let request = connection.read().expect("Failed to read request");
 
-        assert_eq!(
-            request,
-            protocol::Request::Handshake {
-                protocol_version: protocol::VERSION,
-                backend_name: "niri".into()
-            },
+        assert!(
+            matches!(
+                request,
+                protocol::Request::Handshake {
+                    protocol_version: protocol::VERSION,
+                    backend_name,
+                    executable_path: _,
+                } if backend_name == "niri".to_string(),
+            ),
             "First request didn't match"
         );
 
