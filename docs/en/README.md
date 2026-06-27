@@ -77,7 +77,6 @@ cargo install --path ./cli
   - [ ] KDE
   - [ ] Sway
   - [ ] *Mutter?*
-- [ ] **Runtime backend loading**: Dynamic backend loading without recompilation
 - [ ] **Database encryption**: Protect user data
 - [ ] **Gtk application**
 - [ ] **Database integrity checks**: Validate data on load
@@ -86,6 +85,8 @@ cargo install --path ./cli
   - [ ] Android
     - [ ] Backend
     - [ ] Application
+
+- [x] ~~**Runtime backend loading**: Dynamic backend loading without recompilation.~~ [#1](https://github.com/NonExistPlayer/spyland/pull/1)
 
 ## License
 
