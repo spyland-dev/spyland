@@ -1375,11 +1375,13 @@ dependencies = [
 name = "spyland-backend-niri"
 version = "1.0.0"
 dependencies = [
+ "anyhow",
  "env_logger",
  "log",
  "niri-ipc",
  "serde_json",
  "spyland-core",
+ "spyland-lib",
  "tempfile",
 ]
 
@@ -1411,7 +1413,6 @@ dependencies = [
  "env_logger",
  "log",
  "serde",
- "spyland-backend-niri",
  "spyland-core",
  "spyland-lib",
  "tokio",

@@ -13,12 +13,11 @@ use std::{
         mpsc::{self, Receiver, Sender},
     },
     thread,
-    time::Duration,
 };
 
 use niri_ipc::{Reply, Request, Response, Window};
 use spyland_backend_niri::NiriBackend;
-use spyland_core::Backend;
+use spyland_lib::ipc::{IpcConnection, IpcServer, protocol};
 use tempfile::{Builder, NamedTempFile};
 
 pub use niri_ipc::Event as NiriEvent;
@@ -94,34 +93,68 @@ impl FakeNiriServer {
 }
 
 pub struct TestDriver {
-    server: Arc<Mutex<FakeNiriServer>>,
-    receiver: Receiver<CoreEvent>,
+    niri_server: Arc<Mutex<FakeNiriServer>>,
+    connection: IpcConnection,
 }
 
 impl TestDriver {
     pub fn new() -> Self {
         let _ = env_logger::try_init();
 
-        let server = Arc::new(Mutex::new(FakeNiriServer::new()));
+        let niri_server = Arc::new(Mutex::new(FakeNiriServer::new()));
 
-        let mut backend = NiriBackend::new(
-            server
+        let ipc_socket_path = Builder::new()
+            .make(|_| Ok(()))
+            .unwrap()
+            .path()
+            .to_path_buf();
+
+        let mut ipc_server =
+            IpcServer::new(ipc_socket_path.clone()).expect("Failed to initialize IPC server");
+
+        let backend = NiriBackend::new(
+            niri_server
                 .lock()
                 .unwrap()
                 .socket_path
                 .path()
                 .to_path_buf()
                 .clone(),
-        );
-        let receiver = backend.subscribe();
+            ipc_socket_path,
+        )
+        .expect("Failed to initialize backend");
+        thread::spawn(move || backend.run());
 
-        let server_clone = server.clone();
+        let connection = ipc_server.accept().expect("Failed to establish connection");
+
+        let request = connection.read().expect("Failed to read request");
+
+        assert_eq!(
+            request,
+            protocol::Request::Handshake {
+                protocol_version: protocol::VERSION,
+                backend_name: "niri".into()
+            },
+            "First request didn't match"
+        );
+
+        connection
+            .send(protocol::Response::Handshake {
+                protocol_version: protocol::VERSION,
+                is_accepted: true,
+            })
+            .expect("Failed to send request");
+
+        let server_clone = niri_server.clone();
         thread::spawn(move || server_clone.lock().unwrap().run());
-        Self { server, receiver }
+        Self {
+            niri_server,
+            connection,
+        }
     }
 
     pub fn send(&self, event: NiriEvent) {
-        self.server
+        self.niri_server
             .lock()
             .unwrap()
             .ev_sender
@@ -130,7 +163,7 @@ impl TestDriver {
     }
 
     pub fn new_test_window(&mut self) -> (u64, String) {
-        let server = self.server.lock().unwrap();
+        let server = self.niri_server.lock().unwrap();
         let mut windows = server.windows.lock().unwrap();
 
         let id: u64 = windows.len().try_into().unwrap();
@@ -171,10 +204,8 @@ impl TestDriver {
 
     pub fn assert_event(&self, event: CoreEvent) {
         assert_eq!(
-            event,
-            self.receiver
-                .recv_timeout(Duration::from_millis(1000))
-                .expect("receive failed")
+            protocol::Request::Event(event),
+            self.connection.read().expect("Failed to read response")
         );
     }
 }

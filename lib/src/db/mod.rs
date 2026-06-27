@@ -46,6 +46,11 @@ impl Db {
         })
     }
 
+    /// Creates [Db] from the [SqlitePool].
+    pub async fn from_pool(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
     /// Opens database by its path.
     ///
     /// # Arguments

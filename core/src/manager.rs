@@ -65,6 +65,7 @@ pub struct SessionManager<C: Clock> {
 /// The [SessionManager] response.
 ///
 /// It indicates what happens after [handling](SessionManager::handle_event) the [event](Event).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq)]
 pub enum Response {
     /// The event was successfully processed with no additional information.

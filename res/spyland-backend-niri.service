@@ -1,0 +1,19 @@
+[Unit]
+Description=spyland niri compositor backend
+Documentation=https://github.com/NonExistPlayer/spyland
+After=spylandd.service niri.service
+BindsTo=niri.service
+Requires=spylandd.service
+PartOf=spyland-backends.target
+
+[Service]
+Type=simple
+ExecStart=spyland-backend-niri
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spyland-backend-niri
+
+[Install]
+WantedBy=spyland-backends.target

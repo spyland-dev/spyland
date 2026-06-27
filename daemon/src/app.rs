@@ -6,29 +6,27 @@
  */
 
 use std::{
-    sync::{Arc, Mutex, mpsc::Receiver},
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
-use spyland_backend_niri::NiriBackend;
 use spyland_core::{
-    Backend, Event,
+    Event,
     manager::{Clock, Configuration as CoreConfig, Response, SessionManager},
 };
 use spyland_lib::{
     db::Db,
     ipc::{
         IpcConnection, IpcServer,
-        protocol::{Request as IpcRequest, Response as IpcResponse},
+        protocol::{self, Request as IpcRequest, Response as IpcResponse},
     },
 };
 
 use anyhow::{Context, Result};
-use log::{trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::time::interval;
 
 pub struct App<C: Clock> {
-    receiver: Receiver<Event>,
     session_manager: Arc<Mutex<SessionManager<C>>>,
     db: Db,
     server: IpcServer,
@@ -52,12 +50,9 @@ impl<C: Clock> App<C> {
         };
         sm.set_config(config);
 
-        let mut backend = new_backend().context("No backend is available")?;
-
         db.create().await.context("Failed to create database")?;
 
         Ok(Self {
-            receiver: backend.subscribe(),
             session_manager: Arc::new(Mutex::new(sm)),
             server,
             db,
@@ -68,29 +63,17 @@ impl<C: Clock> App<C> {
 impl<C: Clock + Send + 'static> App<C> {
     pub async fn run(self) -> Result<()> {
         let sm = self.session_manager.clone();
-        let rx = self.receiver;
-        let event_task = tokio::task::spawn_blocking(move || Self::event_handler(sm, rx));
-
-        let sm = self.session_manager.clone();
         let db = self.db;
         let tick_task = tokio::task::spawn_local(async move {
             Self::tick_handler(sm, db).await;
         });
 
-        // let sm = self.session_manager.clone();
+        let sm = self.session_manager.clone();
         let sv = self.server;
-        let ipc_task = tokio::task::spawn_blocking(move || Self::ipc_server(sv));
-        tokio::try_join!(event_task, tick_task, ipc_task)?;
+        let ipc_task = tokio::task::spawn_blocking(move || Self::ipc_server(sv, sm));
+        tokio::try_join!(tick_task, ipc_task)?;
 
         Ok(())
-    }
-
-    fn event_handler(session_manager: Arc<Mutex<SessionManager<C>>>, receiver: Receiver<Event>) {
-        trace!("event_handler()");
-        for event in receiver {
-            trace!("Event received: {event:?}");
-            session_manager.lock().unwrap().handle_event(event);
-        }
     }
 
     async fn tick_handler(session_manager: Arc<Mutex<SessionManager<C>>>, database: Db) {
@@ -115,37 +98,63 @@ impl<C: Clock + Send + 'static> App<C> {
         }
     }
 
-    fn ipc_server(mut server: IpcServer) {
+    fn ipc_server(mut server: IpcServer, session_manager: Arc<Mutex<SessionManager<C>>>) {
         trace!("ipc_server()");
+
+        info!("Waiting for backend...");
 
         loop {
             let conn = server.accept().expect("Accept new connection failed");
 
+            let sm = session_manager.clone();
             tokio::task::spawn_blocking(move || {
-                Self::connection_handler(conn);
+                Self::connection_handler(conn, sm);
             });
         }
     }
 
-    fn connection_handler(conn: IpcConnection) {
-        while let Ok(request) = conn.read() {
-            let response = match request {
-                IpcRequest::Ping => IpcResponse::Pong,
-            };
+    fn connection_handler(conn: IpcConnection, session_manager: Arc<Mutex<SessionManager<C>>>) {
+        loop {
+            match conn.read() {
+                Ok(request) => {
+                    let response = match request {
+                        IpcRequest::Ping => IpcResponse::Pong,
+                        IpcRequest::Handshake {
+                            protocol_version,
+                            backend_name,
+                        } => {
+                            let is_accepted = protocol_version <= protocol::VERSION;
+                            match is_accepted {
+                                true => {
+                                    info!(
+                                        "The '{backend_name}' backend is accepted! Protocol version: {protocol_version}"
+                                    )
+                                }
+                                false => {
+                                    warn!(
+                                        "The '{backend_name}' backend was rejected due to version incompatibility.",
+                                    );
+                                    debug!("{protocol_version} > {}", protocol::VERSION);
+                                }
+                            }
 
-            conn.send(response).expect("Failed to send response");
+                            IpcResponse::Handshake {
+                                protocol_version: protocol::VERSION,
+                                is_accepted,
+                            }
+                        }
+                        IpcRequest::Event(event) => IpcResponse::EventResponse(
+                            session_manager.lock().unwrap().handle_event(event),
+                        ),
+                    };
+
+                    conn.send(response).expect("Failed to send response");
+                }
+                Err(err) => {
+                    warn!("Read failed: '{err:#}'. Connection will be shutdown.");
+                    break;
+                }
+            }
         }
     }
-}
-
-fn new_backend() -> Option<Box<dyn Backend>> {
-    let backends: Vec<Box<dyn Backend>> = vec![Box::new(NiriBackend::default())];
-
-    for backend in backends {
-        if backend.is_available() {
-            return Some(backend);
-        }
-    }
-
-    None
 }
