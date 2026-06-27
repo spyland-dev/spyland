@@ -34,14 +34,32 @@ cargo install --path ./cli
 
 ## Project Structure
 
-| Directory | Crate                  | Description                                        |
-| --------- | :--------------------: | -------------------------------------------------- |
-| `core`    | `spyland-core`         | Project core: session abstraction, events, backend |
-| `lib`     | `spyland-lib`          | Public library: database API, IPC, utilities       |
-| `daemon`  | `spylandd`             | Unix daemon that tracks screen time in background  |
-| `cli`     | `spyland`              | CLI application for interacting with daemon        |
-| `niri`    | `spyland-backend-niri` | Backend for niri compositor                        |
-| `docs`    | -                      | Project documentation                              |
+```
+.
+├── crates                            # Crates or source code
+│   ├── cli                           # CLI program for interacting with data
+│   ├── core                          # Project core: event and session abstraction
+│   ├── daemon                        # Unix-daemon, which tracks time
+│   ├── lib                           # Public API library: Database API, IPC, utils
+│   └── niri                          # Backend for Wayland-compositor 'niri'
+│
+├── docs                              # Project documentation
+│   ├── en                            # English
+│   └── ru                            # Russian
+│
+├── res                               # Additional files (like services)
+│   ├── spyland-backend-niri.service  # Systemd service for the niri backend
+│   ├── spyland-backends.target       # Systemd target for backends
+│   └── spylandd.service              # Systemd service for the daemon
+│
+├── Cargo.lock
+├── Cargo.toml                        # Cargo workspace
+├── CONTRIBUTING.md -> docs/en/CONTRIBUTING.md
+├── flake.lock
+├── flake.nix                         # Nix flake with dev-shell
+├── LICENSE                           # Code license
+└── README.md -> docs/en/README.md
+```
 
 ## Roadmap
 

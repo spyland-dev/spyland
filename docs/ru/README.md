@@ -34,14 +34,32 @@ cargo install --path ./cli
 
 ## Структура проекта
 
-| Директория | Крейт                  | Описание                                          |
-|----------- | :--------------------: | ------------------------------------------------- |
-| `core`     | `spyland-core`         | Ядро проекта: абстракция сессий, событий, бэкэнда |
-| `lib`      | `spyland-lib`          | Публичная библиотека: БД API, IPC, утилиты        |
-| `daemon`   | `spylandd`             | Unix-демон, отслеживающий экранное время в фоне   |
-| `cli`      | `spyland`              | CLI приложение для взаимодействия с daemon        |
-| `niri`     | `spyland-backend-niri` | Backend для композитора niri                      |
-| `docs`     | -                      | Документация проекта                              |
+```
+.
+├── crates                            # Крейты; исходный код
+│   ├── cli                           # CLI программа для взаимодействия с данными
+│   ├── core                          # Ядро проекта: абстракция сессий, событий
+│   ├── daemon                        # Unix-демон, отслеживающий время в фоне 
+│   ├── lib                           # Публичная API библиотека: БД API, IPC, утилиты
+│   └── niri                          # Бэкэнд для композитора niri
+│
+├── docs                              # Документация проекта
+│   ├── en                            # Английский язык
+│   └── ru                            # Русский язык
+│
+├── res                               # Вспомогательные файлы (такие как сервисы)
+│   ├── spyland-backend-niri.service  # Systemd-сервис для niri бэкэнда
+│   ├── spyland-backends.target       # Systemd-target бэкэндов
+│   └── spylandd.service              # Systemd-сервис для Unix-демона
+│
+├── Cargo.lock
+├── Cargo.toml                        # Cargo workspace
+├── CONTRIBUTING.md -> docs/en/CONTRIBUTING.md
+├── flake.lock
+├── flake.nix                         # Nix flake с dev-shell
+├── LICENSE                           # Лицензия кода
+└── README.md -> docs/en/README.md
+```
 
 ## Дорожная карта
 
