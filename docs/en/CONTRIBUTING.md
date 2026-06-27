@@ -194,7 +194,7 @@ Files in `docs/` must exist in two languages:
 Symbolic links to the English version are in the repository root.
 
 When modifying documentation:
-1. Update both languages
+1. Update main english language
 2. Verify all links are correct (internal, external, images)
 3. Ensure translation is accurate
 4. Check formatting (headings, code, lists)
