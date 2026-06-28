@@ -81,7 +81,9 @@ impl SessionAnalytics {
         let mut counter: u64 = 0;
 
         for s in &self.sessions {
-            counter += s.end - s.start;
+            if let State::Active { .. } = &s.state {
+                counter += s.end - s.start;
+            }
         }
 
         counter
