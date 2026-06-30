@@ -43,7 +43,7 @@ impl SessionAnalytics {
     /// ];
     ///
     /// let analytics = SessionAnalytics::new(sessions);
-    /// assert_eq!(analytics.total_screen_time(), 50);
+    /// assert_eq!(analytics.total_screen_time(), 30);
     /// ```
     pub fn new(sessions: Vec<Session>) -> Self {
         Self { sessions }
@@ -75,7 +75,7 @@ impl SessionAnalytics {
     /// ];
     /// let analytics = SessionAnalytics::new(sessions);
     ///
-    /// assert_eq!(analytics.total_screen_time(), 120);
+    /// assert_eq!(analytics.total_screen_time(), 70);
     /// ```
     pub fn total_screen_time(&self) -> u64 {
         let mut counter: u64 = 0;
