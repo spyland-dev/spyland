@@ -65,10 +65,9 @@ pub enum Response {
 /// # Arguments
 /// * `stream` --- stream to send
 /// * `serializable` --- data for send
-pub fn send<T: Serialize>(stream: &UnixStream, serializable: T) -> Result<()> {
+pub fn send<T: Serialize>(mut stream: &UnixStream, serializable: T) -> Result<()> {
     let json = serde_json::to_string(&serializable)?;
-    let mut writer = stream;
-    writeln!(writer, "{json}")?;
+    writeln!(stream, "{json}")?;
     Ok(())
 }
 
