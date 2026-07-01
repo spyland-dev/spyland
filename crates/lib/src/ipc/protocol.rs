@@ -7,7 +7,7 @@
 
 //! Module that defines IPC protocol guidelines.
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 
 use anyhow::Result;
@@ -17,6 +17,9 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 ///
 /// Used in [handshake](Request::Handshake) between backend and the daemon.
 pub const VERSION: u32 = 0;
+
+/// Max approvable message size to [read]. 
+pub const MAX_MESSAGE_SIZE: u64 = 64 * 1024;
 
 /// Request from the client.
 ///
@@ -75,8 +78,8 @@ pub fn send<T: Serialize>(stream: &UnixStream, serializable: T) -> Result<()> {
 /// * `stream` --- stream to read
 pub fn read<T: DeserializeOwned>(stream: &UnixStream) -> Result<T> {
     let mut json = String::new();
-    let mut reader = BufReader::new(stream);
-    reader.read_line(&mut json)?;
+    let reader = BufReader::new(stream);
+    reader.take(MAX_MESSAGE_SIZE).read_line(&mut json)?;
 
     let deserializable: T = serde_json::from_str(&json)?;
 
