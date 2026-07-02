@@ -1,6 +1,6 @@
 [Unit]
 Description=screen time tracking daemon
-Documentation=https://github.com/NonExistPlayer/spyland
+Documentation=https://github.com/spyland-dev/spyland
 After=graphical-session.target
 PartOf=graphical-session.target
 Wants=spyland-backends.target

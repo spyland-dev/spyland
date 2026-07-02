@@ -26,7 +26,7 @@
 Требуется Rust (последняя стабильная версия). Установите через `cargo`:
 
 ```bash
-git clone https://github.com/NonExistPlayer/spyland
+git clone https://github.com/spyland-dev/spyland
 cd spyland
 cargo install --path ./daemon
 cargo install --path ./cli
@@ -86,7 +86,7 @@ cargo install --path ./cli
     - [ ] Бэкэнд
     - [ ] Приложение
 
-- [x] ~~**Runtime подгрузка бэкэндов**: Динамическая загрузка бэкэндов без перекомпиляции~~ [#1](https://github.com/NonExistPlayer/spyland/pull/1)
+- [x] ~~**Runtime подгрузка бэкэндов**: Динамическая загрузка бэкэндов без перекомпиляции~~ [#1](https://github.com/spyland-dev/spyland/pull/1)
 
 ## Лицензия
 

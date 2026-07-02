@@ -26,7 +26,7 @@ The project includes a Unix daemon, CLI application, and a public API library.
 Requires Rust (latest stable version). Install via `cargo`:
 
 ```bash
-git clone https://github.com/NonExistPlayer/spyland
+git clone https://github.com/spyland-dev/spyland
 cd spyland
 cargo install --path ./daemon
 cargo install --path ./cli
@@ -86,7 +86,7 @@ cargo install --path ./cli
     - [ ] Backend
     - [ ] Application
 
-- [x] ~~**Runtime backend loading**: Dynamic backend loading without recompilation.~~ [#1](https://github.com/NonExistPlayer/spyland/pull/1)
+- [x] ~~**Runtime backend loading**: Dynamic backend loading without recompilation.~~ [#1](https://github.com/spyland-dev/spyland/pull/1)
 
 ## License
 

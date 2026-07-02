@@ -1,6 +1,6 @@
 [Unit]
 Description=spyland backends target
-Documentation=https://github.com/NonExistPlayer/spyland
+Documentation=https://github.com/spyland-dev/spyland
 PartOf=graphical-session.target
 
 [Install]

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
     long_about = "Multi-supported screen time tracking for Wayland compositors
 Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
 Licensed under the GNU General Public License v3.0
-See source code on GitHub: https://github.com/NonExistPlayer/spyland",
+See source code on GitHub: https://github.com/spyland-dev/spyland",
     arg_required_else_help = true
 )]
 struct Args {

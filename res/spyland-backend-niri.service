@@ -1,6 +1,6 @@
 [Unit]
 Description=spyland niri compositor backend
-Documentation=https://github.com/NonExistPlayer/spyland
+Documentation=https://github.com/spyland-dev/spyland
 After=spylandd.service niri.service
 BindsTo=niri.service
 Requires=spylandd.service
