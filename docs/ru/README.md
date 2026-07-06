@@ -28,8 +28,8 @@
 ```bash
 git clone https://github.com/spyland-dev/spyland
 cd spyland
-cargo install --path ./daemon
-cargo install --path ./cli
+cargo install --path ./crates/daemon
+cargo install --path ./crates/cli
 ```
 
 ## Структура проекта
