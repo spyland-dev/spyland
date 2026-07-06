@@ -20,7 +20,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L68-L87)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L68-L87)
 
 ## Сессии и состояния
 
@@ -36,7 +36,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L25-L38)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L25-L38)
 
 Пользовательское состояние описывается в `enum State`:
 
@@ -50,7 +50,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L45-L63)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/lib.rs#L45-L63)
 
 У пользователя состояние либо активное, либо нет. Rust своим синтаксисом, позволяет удобно добавить
 специальные поля только для `State::Active`.
@@ -72,7 +72,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L46-L52)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L46-L52)
 
 Такой трейт нужен для того, чтобы менеджер мог работать и с реальным временем и с контролируемым
 для тестов. Например, реализация с настоящим временем:
@@ -90,7 +90,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/daemon/src/main.rs#L86-L95)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/daemon/src/main.rs#L86-L95)
 
 Подразумивается, что `now()`, возвращает [UNIX Timestamp](https://en.wikipedia.org/wiki/Unix_time),
 однако формат может вариароваться от реализации.
@@ -126,7 +126,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L105-L120)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L105-L120)
 
 Менеджер сессий может конфигурироваться данной структурой. Она по большей части предназначена для
 конфигов spyland, но чтобы не загружать `core`, у крейта присутсвует feature `serde`, которая
@@ -156,14 +156,14 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L122-L130)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L122-L130)
 
 ### `enum Response`: Ответы
 
 Менеджер в методах `handle_event()` и `flush()` возвращает `Response`. Этот ответ это действие,
 которое он выполнил. Для подробного описания, смотрите
-[документацию `handle_event()`](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L154-L170),
-и [документацию `Response`](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L65-L98).
+[документацию `handle_event()`](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L154-L170),
+и [документацию `Response`](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L65-L98).
 
 ### `fn flush()`: Сохранение сессий
 
@@ -194,7 +194,7 @@
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L55-L63)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/src/manager.rs#L55-L63)
 
 Краткое описание для каждого поле:
 
@@ -285,4 +285,4 @@ fn test_name() {
 > }
 > ```
 >
-> [Source](https://github.com/NonExistPlayer/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/tests/lib.rs#L50-L72)
+> [Source](https://github.com/spyland-dev/spyland/blob/1465e924feab9587321f1753ce2f2a0e1b374126/core/tests/lib.rs#L50-L72)
