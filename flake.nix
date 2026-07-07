@@ -27,7 +27,7 @@
 	  sqlx-cli
 	];
 
-	shellHook = "mkdir ${varDir}"; 
+	shellHook = "mkdir -p ${varDir}"; 
 
 	# Override spyland's directories to `varDir` to avoid conflicts
 	# between the release and development versions running at the same time.
