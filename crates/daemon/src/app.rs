@@ -123,16 +123,21 @@ impl<C: Clock + Send + 'static> App<C> {
                             protocol_version,
                             backend_name,
                         } => {
+                            use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
                             let is_accepted = protocol_version <= protocol::VERSION;
+                            let pid = match getsockopt(conn.stream(), PeerCredentials) {
+                                Ok(cred) => cred.pid().to_string(),
+                                Err(e) => e.desc().to_owned(),
+                            };
                             match is_accepted {
                                 true => {
                                     info!(
-                                        "The '{backend_name}' backend is accepted! Protocol version: {protocol_version}"
+                                        "The '{backend_name}' ({pid}) backend is accepted! Protocol version: {protocol_version}"
                                     )
                                 }
                                 false => {
                                     warn!(
-                                        "The '{backend_name}' backend was rejected due to version incompatibility.",
+                                        "The '{backend_name}' ({pid}) backend was rejected due to version incompatibility.",
                                     );
                                     debug!("{protocol_version} > {}", protocol::VERSION);
                                 }

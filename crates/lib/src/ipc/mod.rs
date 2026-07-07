@@ -65,7 +65,6 @@ impl IpcConnection {
     pub fn stream(&self) -> &UnixStream {
         &self.stream
     }
-
 }
 
 /// Simple IPC client.
