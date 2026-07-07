@@ -7,6 +7,11 @@
     let
       system = builtins.currentSystem or "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+
+      varDir = "/var/tmp/spyland-debug/";
+      database = "${varDir}/sessions.sqlite";
+      socket = "${varDir}/spyland.sock";
+      config = "${varDir}/config.toml";
     in
     {
       devShells.${system}.default = pkgs.mkShell {
@@ -21,8 +26,16 @@
 	  sqlx-cli
 	];
 
+	shellHook = "mkdir ${varDir}"; 
+
+	# Override spyland's directories to `varDir` to avoid conflicts
+	# between the release and development versions running at the same time.
+	SPYLAND_DATABASE = database;
+	SPYLAND_SOCKET = socket;
+	SPYLAND_CONFIG = config;
+
 	SQLX_OFFLINE = true;
-	DATABASE_URL = "sqlite://$HOME/.local/state/spyland/sessions.sqlite";
+	DATABASE_URL = "sqlite://${database}";
 	RUST_LOG = "debug";
       };
     };
