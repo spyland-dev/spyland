@@ -40,23 +40,34 @@ macro_rules! define_path_ensurer {
 }
 
 /// Returns the path to the spyland database:
-/// `$XDG_STATE_HOME/spyland/sessions.sqlite` or
-/// `$HOME/.local/state/spyland/sessions.sqlite` (fallback).
+///
+/// Available pathes:
+/// - `$SPYLAND_DATABASE`
+/// - `$XDG_STATE_HOME/spyland/sessions.sqlite`
+/// - `$HOME/.local/state/spyland/sessions.sqlite`.
 pub fn get_database_path() -> Result<PathBuf> {
-    let state_path = match env::var("XDG_STATE_HOME") {
-        Ok(dir) => PathBuf::from(dir),
-        Err(_) => {
-            let home = env::var("HOME").context("Home directory is not set")?;
-            PathBuf::from(home).join(".local/state/")
+    let path = match env::var("SPYLAND_DATABASE") {
+        Ok(file) => PathBuf::from(file),
+        Err(_) => match env::var("XDG_STATE_HOME") {
+            Ok(dir) => PathBuf::from(dir),
+            Err(_) => {
+                let home = env::var("HOME").context("Home directory is not set")?;
+                PathBuf::from(home).join(".local/state/")
+            }
         }
-    }
-    .join("spyland/sessions.sqlite");
+        .join("spyland/sessions.sqlite"),
+    };
 
-    Ok(state_path)
+    Ok(path)
 }
 
 define_path_ensurer!(
     /// Returns and ensures that the path exists.
+    ///
+    /// Available pathes:
+    /// - `$SPYLAND_DATABASE`
+    /// - `$XDG_STATE_HOME/spyland/sessions.sqlite`
+    /// - `$HOME/.local/state/spyland/sessions.sqlite`.
     ///
     /// <div class="warning">
     /// But it doesn't make sure the file exists, because sqlite will automatically create the file if it needs to.
@@ -67,15 +78,24 @@ define_path_ensurer!(
 
 /// Returns the path to the spyland socket.
 ///
-/// `$XDG_RUNTIME_DIR/spyland.sock`
+/// Available pathes:
+/// - `$SPYLAND_SOCKET`
+/// - `$XDG_RUNTIME_DIR/spyland.sock`
 pub fn get_socket_path() -> Result<PathBuf> {
-    let runtime_dir = env::var("XDG_RUNTIME_DIR")?;
+    let path = match env::var("SPYLAND_SOCKET") {
+        Ok(file) => PathBuf::from(file),
+        Err(_) => PathBuf::from(env::var("XDG_RUNTIME_DIR")?).join("spyland.sock"),
+    };
 
-    Ok(PathBuf::from(runtime_dir).join("spyland.sock"))
+    Ok(path)
 }
 
 define_path_ensurer!(
     /// Returns the socket path and ensures that it is not already occupied.
+    ///
+    /// Available pathes:
+    /// - `$SPYLAND_SOCKET`
+    /// - `$XDG_RUNTIME_DIR/spyland.sock`
     ///
     /// <div class="warning">
     /// If the socket already exists, it will be removed!
@@ -92,21 +112,33 @@ define_path_ensurer!(
 
 /// Returns the configuration path.
 ///
-/// `$XDG_CONFIG_HOME/spyland/config.toml`
+/// Available pathes:
+/// - `$SPYLAND_CONFIG`
+/// - `$XDG_CONFIG_HOME/spyland/config.toml`
+/// - `$HOME/.config/spyland/config.toml`
 pub fn get_config_path() -> Result<PathBuf> {
-    let config_dir = match env::var("XDG_CONFIG_HOME") {
-        Ok(p) => PathBuf::from(p),
-        Err(_) => {
-            let home = env::var("HOME").context("Home directory is not set")?;
-            PathBuf::from(home).join(".config/")
+    let config_file = match env::var("SPYLAND_CONFIG") {
+        Ok(file) => PathBuf::from(file),
+        Err(_) => match env::var("XDG_CONFIG_HOME") {
+            Ok(p) => PathBuf::from(p),
+            Err(_) => {
+                let home = env::var("HOME").context("Home directory is not set")?;
+                PathBuf::from(home).join(".config/")
+            }
         }
-    }.join("spyland/config.toml");
+        .join("spyland/config.toml"),
+    };
 
-    Ok(config_dir)
+    Ok(config_file)
 }
 
 define_path_ensurer!(
     /// Returns and ensures that the configuration file exists.
+    ///
+    /// Available pathes:
+    /// - `$SPYLAND_CONFIG`
+    /// - `$XDG_CONFIG_HOME/spyland/config.toml`
+    /// - `$HOME/.config/spyland/config.toml`
     ensure_config_path,
     get_config_path,
     |__path| {
