@@ -20,6 +20,7 @@
 	  cargo
 	  rustfmt
 	  rust-analyzer
+	  clippy
 
 	  cargo-nextest # optional
 
