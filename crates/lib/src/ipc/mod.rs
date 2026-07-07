@@ -60,6 +60,12 @@ impl IpcConnection {
     pub fn read(&self) -> Result<Request> {
         protocol::read(&self.stream)
     }
+
+    /// Returns [`UnixStream`] of this client.
+    pub fn stream(&self) -> &UnixStream {
+        &self.stream
+    }
+
 }
 
 /// Simple IPC client.
