@@ -133,13 +133,11 @@ impl NiriBackend {
                             }
                         }
                     }
-                    NiriEvent::WorkspaceActivated { id, focused } => {
-                        if focused {
-                            self.client
-                                .send(IpcRequest::Event(CoreEvent::WorkspaceChanged(
-                                    id.try_into().unwrap(),
-                                )))?;
-                        }
+                    NiriEvent::WorkspaceActivated { id, focused } if focused => {
+                        self.client
+                            .send(IpcRequest::Event(CoreEvent::WorkspaceChanged(
+                                id.try_into().unwrap(),
+                            )))?;
                     }
                     _ => {}
                 },
