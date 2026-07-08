@@ -173,10 +173,10 @@ impl<C: Clock> SessionManager<C> {
         let now = self.clock.now();
         match event {
             Event::ActiveWindowChanged(a) => {
-                if let Some(ref app_id) = a {
-                    if self.config.hidden_applications.contains(&app_id) {
-                        return Response::Ignored;
-                    }
+                if let Some(ref app_id) = a
+                    && self.config.hidden_applications.contains(&app_id)
+                {
+                    return Response::Ignored;
                 }
 
                 self.current = Some(Session {
@@ -286,17 +286,17 @@ impl<C: Clock> SessionManager<C> {
         if let Some(current) = &mut self.current {
             current.end = self.clock.now();
 
-            if self.config.min_session_duration != 0 {
-                if (current.end - current.start) <= self.config.min_session_duration {
-                    return Response::Ignored;
-                }
+            if self.config.min_session_duration != 0
+                && (current.end - current.start) <= self.config.min_session_duration
+            {
+                return Response::Ignored;
             }
 
-            if let Some(last) = self.sessions.last_mut() {
-                if last.state == current.state {
-                    last.end = current.end;
-                    return Response::Flushed { merged: true };
-                }
+            if let Some(last) = self.sessions.last_mut()
+                && last.state == current.state
+            {
+                last.end = current.end;
+                return Response::Flushed { merged: true };
             }
 
             self.sessions.push(current.clone());

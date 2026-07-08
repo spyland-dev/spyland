@@ -108,10 +108,10 @@ impl SessionAnalytics {
         let mut counter: u64 = 0;
 
         for s in &self.sessions {
-            if let State::Active { app_id, .. } = &s.state {
-                if *app_id == target_app_id {
-                    counter += s.end - s.start;
-                }
+            if let State::Active { app_id, .. } = &s.state
+                && *app_id == target_app_id
+            {
+                counter += s.end - s.start;
             }
         }
 
