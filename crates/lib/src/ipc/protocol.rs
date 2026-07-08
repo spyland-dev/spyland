@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 /// A protocol version.
 ///
 /// Used in [handshake](Request::Handshake) between backend and the daemon.
-pub const VERSION: u32 = 0;
+pub const VERSION: u32 = 1;
 
 /// Max approvable message size to [read].
 pub const MAX_MESSAGE_SIZE: u64 = 64 * 1024;
