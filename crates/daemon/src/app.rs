@@ -82,16 +82,25 @@ impl<C: Clock + Send + 'static> App<C> {
         let mut timer = interval(Duration::from_secs(1));
         loop {
             timer.tick().await;
-            let mut sm_lock = session_manager.lock().unwrap();
-            let response = sm_lock.handle_event(Event::Tick);
+
+            let (response, session) = {
+                let mut sm_lock = session_manager.lock().unwrap();
+                let response = sm_lock.handle_event(Event::Tick);
+                let session = if let Response::Flushed { .. } = response {
+                    sm_lock.sessions().last().cloned()
+                } else {
+                    None
+                };
+                (response, session)
+            };
 
             if let Response::Flushed { merged } = response
-                && let Some(session) = sm_lock.sessions().last()
+                && let Some(session) = session
             {
                 if !merged {
-                    database.insert(session.clone().into()).await
+                    database.insert(session.into()).await
                 } else {
-                    database.update_last(session.clone().into()).await
+                    database.update_last(session.into()).await
                 }
                 .expect("Database operation failed");
             }
