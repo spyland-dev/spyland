@@ -220,7 +220,7 @@ impl<C: Clock> SessionManager<C> {
                         state: State::Idle,
                     });
 
-                    return response;
+                    response
                 } else {
                     if let Some(current) = &self.current {
                         if current.state != State::Idle {
