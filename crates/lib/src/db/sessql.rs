@@ -13,8 +13,8 @@ pub struct SessionSql {
     ///
     /// This field determines some other fields:
     /// - [`SessionSql::app_id`] will only have a value ([`Some`]) if this field equals `true`.
-    /// - [`SessionSql::workspace`] will never have a value ([`None`]) if this field equals
-    /// `false`.
+    /// - [`SessionSql::workspace`] will never have a value ([`None`]) if this field equals `false`.
+    ///
     /// See more documentation for these fields.
     pub is_active: bool,
 
