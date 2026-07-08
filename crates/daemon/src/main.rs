@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
         )
         .await?,
         IpcServer::new(match args.socket {
-            None => path::ensure_socket_path()?.into(),
+            None => path::ensure_socket_path()?,
             Some(path) => path,
         })?,
         &fs::read_to_string(match args.config {
