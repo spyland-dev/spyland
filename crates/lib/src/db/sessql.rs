@@ -43,10 +43,7 @@ impl From<Session> for SessionSql {
         {
             is_active = true;
             app_id = Some(a);
-            workspace = match w {
-                Some(i) => Some(i as i64),
-                None => None,
-            };
+            workspace = w.map(|i| i as i64);
         } else {
             is_active = false;
             app_id = None;
@@ -74,10 +71,7 @@ impl From<SessionSql> for Session {
 
                 state: State::Active {
                     app_id: value.app_id.unwrap(),
-                    workspace: match value.workspace {
-                        Some(i) => Some(i as i32),
-                        None => None,
-                    },
+                    workspace: value.workspace.map(|i| i as i32),
                 },
             }
         } else {
