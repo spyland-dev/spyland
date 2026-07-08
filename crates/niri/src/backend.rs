@@ -66,7 +66,7 @@ impl NiriBackend {
         let mut event_socket = self
             .socket_path
             .as_ref()
-            .map_or_else(Socket::connect, |p| Socket::connect_to(p))
+            .map_or_else(Socket::connect, Socket::connect_to)
             .context("Failed to connect to niri")?;
 
         event_socket
