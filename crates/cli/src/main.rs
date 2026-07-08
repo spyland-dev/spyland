@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
     let config: Config;
 
     if let Ok(file) = &std::fs::read_to_string(path::ensure_config_path()?) {
-        let toml: Value = toml::from_str(&file)?;
+        let toml: Value = toml::from_str(file)?;
 
         if let Some(value) = toml.get("frontend") {
             config = value

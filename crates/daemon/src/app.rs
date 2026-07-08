@@ -34,7 +34,7 @@ pub struct App<C: Clock> {
 
 impl<C: Clock> App<C> {
     pub async fn new(db: Db, server: IpcServer, config: &str, clock: C) -> Result<Self> {
-        let toml: toml::Value = toml::from_str(&config)?;
+        let toml: toml::Value = toml::from_str(config)?;
 
         let mut sm = SessionManager::new(clock);
         let config: CoreConfig = match toml.get("core") {

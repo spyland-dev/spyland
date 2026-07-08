@@ -174,7 +174,7 @@ impl<C: Clock> SessionManager<C> {
         match event {
             Event::ActiveWindowChanged(a) => {
                 if let Some(ref app_id) = a
-                    && self.config.hidden_applications.contains(&app_id)
+                    && self.config.hidden_applications.contains(app_id)
                 {
                     return Response::Ignored;
                 }
