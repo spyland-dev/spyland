@@ -60,12 +60,9 @@ impl FakeNiriServer {
                     let writer = stream.try_clone().expect("failed to clone stream");
                     let request: Result<Request, _> = serde_json::from_str(&line);
 
-                    match request {
-                        Ok(Request::EventStream) => {
-                            let rx = self.ev_receiver.clone();
-                            thread::spawn(move || Self::handle_event_stream(writer, rx));
-                        }
-                        _ => {}
+                    if let Ok(Request::EventStream) = request {
+                        let rx = self.ev_receiver.clone();
+                        thread::spawn(move || Self::handle_event_stream(writer, rx));
                     }
                 }
                 Err(_) => break,
