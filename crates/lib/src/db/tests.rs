@@ -61,7 +61,7 @@ async fn insert_integrity_test(pool: SqlitePool) {
 
     assert_eq!(result.start, START as i64);
     assert_eq!(result.end, END as i64);
-    assert_eq!(result.is_active, true);
+    assert!(result.is_active);
     assert_eq!(result.app_id, Some(APP_ID.into()));
     assert_eq!(result.workspace, Some(WORKSPACE as i64));
 }
@@ -88,7 +88,7 @@ fn session_mapping_test() {
 
     assert_eq!(session_sql.start, START as i64);
     assert_eq!(session_sql.end, END as i64);
-    assert_eq!(session_sql.is_active, true);
+    assert!(session_sql.is_active);
     assert_eq!(session_sql.app_id, Some(APP_ID.into()));
     assert_eq!(session_sql.workspace, Some(WORKSPACE as i64));
 
