@@ -168,7 +168,7 @@ impl TestDriver {
 
         use niri_ipc::WindowLayout;
         let window = Window {
-            id: id,
+            id,
             title: Some(format!("Test Window {}", id)),
             app_id: Some(app_id.clone()),
             pid: Some(1000),
