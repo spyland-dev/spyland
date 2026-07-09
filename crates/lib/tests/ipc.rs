@@ -64,12 +64,12 @@ fn test_multiple_messages() {
         for i in 0..3 {
             let request = connection
                 .read()
-                .expect(&format!("Failed to read message {}", i));
+                .unwrap_or_else(|_| panic!("Failed to read message {}", i));
             assert_eq!(request, Request::Ping, "Message {} mismatch", i);
 
             connection
                 .send(Response::Pong)
-                .expect(&format!("Failed to send response {}", i));
+                .unwrap_or_else(|_| panic!("Failed to send response {}", i));
         }
     });
 
@@ -85,11 +85,11 @@ fn test_multiple_messages() {
     for i in 0..3 {
         client
             .send(Request::Ping)
-            .expect(&format!("Failed to send message {}", i));
+            .unwrap_or_else(|_| panic!("Failed to send message {}", i));
 
         let response = client
             .read()
-            .expect(&format!("Failed to read response {}", i));
+            .unwrap_or_else(|_| panic!("Failed to read response {}", i));
         assert_eq!(response, Response::Pong, "Response {} mismatch", i);
     }
 
@@ -171,20 +171,20 @@ fn test_multiple_parallel_clients() {
         let path_clone = path.clone();
         let handle = thread::spawn(move || {
             let mut client = IpcClient::new(path_clone)
-                .expect(&format!("Client {} failed to connect", client_id));
+                .unwrap_or_else(|_| panic!("Client {} failed to connect", client_id));
 
             client
                 .stream()
                 .set_write_timeout(Some(Duration::from_secs(2)))
-                .expect(&format!("Client {} failed to set timeout", client_id));
+                .unwrap_or_else(|_| panic!("Client {} failed to set timeout", client_id));
 
             client
                 .send(Request::Ping)
-                .expect(&format!("Client {} failed to send ping", client_id));
+                .unwrap_or_else(|_| panic!("Client {} failed to send ping", client_id));
 
             let response = client
                 .read()
-                .expect(&format!("Client {} failed to read response", client_id));
+                .unwrap_or_else(|_| panic!("Client {} failed to read response", client_id));
             assert_eq!(response, Response::Pong);
         });
 
@@ -214,16 +214,14 @@ fn test_multiple_clients_different_message_patterns() {
             let messages_count = if client_idx == 0 { 2 } else { 4 };
 
             for msg_idx in 0..messages_count {
-                let request = connection.read().expect(&format!(
-                    "Client {} msg {} failed to read",
-                    client_idx, msg_idx
-                ));
+                let request = connection.read().unwrap_or_else(|_| {
+                    panic!("Client {} msg {} failed to read", client_idx, msg_idx)
+                });
                 assert_eq!(request, Request::Ping);
 
-                connection.send(Response::Pong).expect(&format!(
-                    "Client {} msg {} failed to send",
-                    client_idx, msg_idx
-                ));
+                connection.send(Response::Pong).unwrap_or_else(|_| {
+                    panic!("Client {} msg {} failed to send", client_idx, msg_idx)
+                });
             }
         }
     });
@@ -241,10 +239,10 @@ fn test_multiple_clients_different_message_patterns() {
         for i in 0..2 {
             client
                 .send(Request::Ping)
-                .expect(&format!("Client 1 failed to send message {}", i));
+                .unwrap_or_else(|_| panic!("Client 1 failed to send message {}", i));
             let response = client
                 .read()
-                .expect(&format!("Client 1 failed to read response {}", i));
+                .unwrap_or_else(|_| panic!("Client 1 failed to read response {}", i));
             assert_eq!(response, Response::Pong);
         }
     });
@@ -262,10 +260,10 @@ fn test_multiple_clients_different_message_patterns() {
         for i in 0..4 {
             client
                 .send(Request::Ping)
-                .expect(&format!("Client 2 failed to send message {}", i));
+                .unwrap_or_else(|_| panic!("Client 2 failed to send message {}", i));
             let response = client
                 .read()
-                .expect(&format!("Client 2 failed to read response {}", i));
+                .unwrap_or_else(|_| panic!("Client 2 failed to read response {}", i));
             assert_eq!(response, Response::Pong);
         }
     });
@@ -291,12 +289,12 @@ fn test_connection_isolation() {
             let conn_num = conn_idx;
             let request = connection
                 .read()
-                .expect(&format!("Connection {} failed to read", conn_num));
+                .unwrap_or_else(|_| panic!("Connection {} failed to read", conn_num));
             assert_eq!(request, Request::Ping);
 
             connection
                 .send(Response::Pong)
-                .expect(&format!("Connection {} failed to send", conn_num));
+                .unwrap_or_else(|_| panic!("Connection {} failed to send", conn_num));
 
             connection_count_clone.fetch_add(1, Ordering::SeqCst);
         }
@@ -308,20 +306,20 @@ fn test_connection_isolation() {
         let path_clone = path.clone();
         thread::spawn(move || {
             let mut client = IpcClient::new(path_clone)
-                .expect(&format!("Client {} failed to create", client_num));
+                .unwrap_or_else(|_| panic!("Client {} failed to create", client_num));
 
             client
                 .stream()
                 .set_write_timeout(Some(Duration::from_secs(2)))
-                .expect(&format!("Client {} failed to set timeout", client_num));
+                .unwrap_or_else(|_| panic!("Client {} failed to set timeout", client_num));
 
             client
                 .send(Request::Ping)
-                .expect(&format!("Client {} failed to send", client_num));
+                .unwrap_or_else(|_| panic!("Client {} failed to send", client_num));
 
             let response = client
                 .read()
-                .expect(&format!("Client {} failed to read response", client_num));
+                .unwrap_or_else(|_| panic!("Client {} failed to read response", client_num));
             assert_eq!(response, Response::Pong);
         });
     }
