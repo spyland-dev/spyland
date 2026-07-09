@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#![allow(clippy::new_without_default)]
+
 use std::{
     io::{BufRead, BufReader, Write},
     os::unix::net::{UnixListener, UnixStream},

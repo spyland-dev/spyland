@@ -6,6 +6,7 @@
  */
 
 #![allow(dead_code)]
+#![allow(clippy::new_without_default)]
 
 use spyland_core::Event;
 use spyland_core::manager::{Clock, Configuration, Response, SessionManager};
