@@ -4,10 +4,11 @@ version.workspace = true
 edition = "2024"
 
 [features]
-default = ["db", "ipc", "path"]
+default = ["db", "ipc", "path", "config"]
 db = ["dep:sqlx", "dep:spyland-core", "dep:anyhow"]
 ipc = ["dep:serde", "dep:serde_json", "dep:spyland-core", "dep:anyhow"]
 path = ["dep:anyhow"]
+config = ["dep:toml", "dep:anyhow"]
 
 [dependencies]
 anyhow = { version = "1.0.102", optional = true }
@@ -15,6 +16,7 @@ serde = { version = "1.0.228", features = ["derive"], optional = true }
 serde_json = { version = "1.0.149", optional = true }
 spyland-core = { version = "0.1.0", path = "../core", optional = true, features = ["serde"] }
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"], optional = true }
+toml = { version = "1.1.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.27.0"

@@ -7,14 +7,20 @@
 
 //! Public library API for spyland.
 //!
-//! There are three modules: [`db`], [`ipc`] and [`path`].
-//! You can use [`db`] for accessing spyland database, and
-//! [`ipc`] to communicate with spylandd (daemon).
-//! [`path`] is a simple module to get spyland pathes.
+//! There are four modules to:
+//! - [`config`] --- manage multiple config sections
+//! - [`db`] --- access sessions database,
+//! - [`ipc`] --- communicate with spyland daemon,
+//! - [`path`] --- get spyland pathes.
+//!
+//! Every module has its feature. By default, they are all enabled.
+//! If you don't need some module, then disable the corresponding feature.
 
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
+#[cfg(feature = "config")]
+pub mod config;
 #[cfg(feature = "db")]
 pub mod db;
 #[cfg(feature = "ipc")]
