@@ -83,6 +83,12 @@ async fn main() -> Result<()> {
 }
 
 fn human_duration(seconds: u64) -> String {
+    use std::fmt::Write;
+
+    if seconds == 0 {
+        return "0s".to_owned();
+    }
+
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
     let seconds = seconds % 60;
@@ -90,19 +96,15 @@ fn human_duration(seconds: u64) -> String {
     let mut str = String::new();
 
     if hours > 0 {
-        str += format!("{hours}h").as_str();
+        let _ = write!(str, "{hours}h");
     }
 
     if minutes > 0 {
-        str += format!("{minutes}m").as_str();
+        let _ = write!(str, "{minutes}m");
     }
 
     if seconds > 0 {
-        str += format!("{seconds}s").as_str();
-    }
-
-    if str.is_empty() {
-        str = "0s".to_string();
+        let _ = write!(str, "{seconds}s");
     }
 
     str
