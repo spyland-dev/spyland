@@ -60,7 +60,7 @@ enum Command {
     },
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     use spyland_lib::path;
 
