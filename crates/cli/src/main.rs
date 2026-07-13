@@ -127,6 +127,9 @@ async fn sessions() -> Result<()> {
 
     let mut old_start = 0;
 
+    let offset = UtcOffset::current_local_offset()?;
+    let format = format_description::parse("[hour]:[minute]")?;
+
     for session in sessions {
         println!("|\n|");
 
@@ -150,12 +153,7 @@ async fn sessions() -> Result<()> {
 
         print!(
             "@--- ({}) {}: ",
-            {
-                let offset = UtcOffset::current_local_offset()?;
-                let format = format_description::parse("[hour]:[minute]")?;
-
-                dt.to_offset(offset).format(&format)?
-            },
+            dt.to_offset(offset).format(&format)?,
             human_duration(session.end - session.start)
         );
 
@@ -198,11 +196,7 @@ async fn time(ascending: bool, by_time: bool) -> Result<()> {
     let mut stat: Vec<(&String, &u64)> = time.iter().collect();
 
     stat.sort_by(|x, y| {
-        let cmp = if by_time {
-            x.1.cmp(y.1)
-        } else {
-            x.0.cmp(y.0)
-        };
+        let cmp = if by_time { x.1.cmp(y.1) } else { x.0.cmp(y.0) };
         if ascending { cmp } else { cmp.reverse() }
     });
     for (app_id, time) in stat {
