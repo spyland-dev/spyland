@@ -99,10 +99,7 @@ fn test_config_set_section() -> Result<()> {
     let temp_file = Builder::new().suffix(".toml").tempfile()?;
     let path = temp_file.path().to_path_buf();
 
-    fs::write(
-        &path,
-        "[core]\nflush_interval = 15",
-    )?;
+    fs::write(&path, "[core]\nflush_interval = 15")?;
 
     let mut config_file = ConfigFile::new(path)?;
 
@@ -130,6 +127,44 @@ fn test_config_set_section() -> Result<()> {
 
     let core: TestCoreConfig = config_file.get_section()?;
     assert_eq!(core.flush_interval, 15);
+
+    Ok(())
+}
+
+#[test]
+fn test_config_by_name() -> Result<()> {
+    let temp_file = Builder::new().suffix(".toml").tempfile()?;
+    let path = temp_file.path().to_path_buf();
+
+    const CORE_FLUSH_INTERVAL: u64 = 42;
+
+    fs::write(
+        &path,
+        format!("[core]\nflush_interval = {CORE_FLUSH_INTERVAL}\n"),
+    )?;
+
+    let mut config_file = ConfigFile::new(path)?;
+
+    let core: TestCoreConfig = config_file.get_section_by_name("core")?;
+    assert_eq!(core.flush_interval, CORE_FLUSH_INTERVAL);
+
+    const BACKEND_IDLE_TIMEOUT: u64 = 100;
+    const BACKEND_IDLE_ON_OVERVIEW: bool = true;
+
+    config_file.set_section_by_name(
+        "backend.niri",
+        TestBackendConfig {
+            idle_timeout: 100,
+            idle_on_overview: true,
+        },
+    )?;
+
+    config_file.save()?;
+    config_file.load()?;
+
+    let backend: TestBackendConfig = config_file.get_section_by_name("backend.niri")?;
+    assert_eq!(backend.idle_timeout, BACKEND_IDLE_TIMEOUT);
+    assert_eq!(backend.idle_on_overview, BACKEND_IDLE_ON_OVERVIEW);
 
     Ok(())
 }
