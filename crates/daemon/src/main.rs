@@ -9,7 +9,6 @@ use anyhow::Result;
 use log::info;
 use spyland_core::manager::Clock;
 use std::{
-    fs,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -84,10 +83,10 @@ async fn main() -> Result<()> {
             None => path::ensure_socket_path()?,
             Some(path) => path,
         })?,
-        &fs::read_to_string(match args.config {
+        match args.config {
             None => path::ensure_config_path()?,
             Some(path) => path,
-        })?,
+        },
         SystemClock {},
     )
     .await?;

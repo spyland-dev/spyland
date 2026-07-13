@@ -6,15 +6,17 @@
  */
 
 use std::{
+    path::PathBuf,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use spyland_core::{
     Event,
-    manager::{Clock, Configuration as CoreConfig, Response, SessionManager},
+    manager::{Clock, Response, SessionManager},
 };
 use spyland_lib::{
+    config::ConfigFile,
     db::Db,
     ipc::{
         IpcConnection, IpcServer,
@@ -33,22 +35,11 @@ pub struct App<C: Clock> {
 }
 
 impl<C: Clock> App<C> {
-    pub async fn new(db: Db, server: IpcServer, config: &str, clock: C) -> Result<Self> {
-        let toml: toml::Value = toml::from_str(config)?;
-
+    pub async fn new(db: Db, server: IpcServer, config_path: PathBuf, clock: C) -> Result<Self> {
         let mut sm = SessionManager::new(clock);
-        let config: CoreConfig = match toml.get("core") {
-            Some(value) => value
-                .clone()
-                .try_into()
-                .context("Failed to deserialize `core` section from config")?,
+        let config_file = ConfigFile::new(config_path)?;
 
-            None => {
-                warn!("Failed to get `core` section from the config! Use default.");
-                CoreConfig::default()
-            }
-        };
-        sm.set_config(config);
+        sm.set_config(config_file.get_section_by_name("core")?);
 
         db.create().await.context("Failed to create database")?;
 
