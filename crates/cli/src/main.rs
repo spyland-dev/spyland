@@ -5,9 +5,11 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
+use spyland_lib::config::{ConfigFile, ConfigSection};
+
 #[derive(Parser)]
 #[command(
     version,
@@ -28,6 +30,10 @@ struct Args {
 struct Config {
     sort_ascending: bool,
     sort_by_time: bool,
+}
+
+impl ConfigSection for Config {
+    const SECTION: &'static str = "frontend.cli";
 }
 
 impl Default for Config {
@@ -57,26 +63,12 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<()> {
     use spyland_lib::path;
-    use toml::Value;
 
     let args = Args::parse();
 
-    let config: Config;
+    let config_file = ConfigFile::new(path::ensure_config_path()?)?;
 
-    if let Ok(file) = &std::fs::read_to_string(path::ensure_config_path()?) {
-        let toml: Value = toml::from_str(file)?;
-
-        if let Some(value) = toml.get("frontend") {
-            config = value
-                .clone()
-                .try_into()
-                .context("Invalid `frontend` section in the config")?;
-        } else {
-            config = Config::default();
-        }
-    } else {
-        config = Config::default();
-    }
+    let config: Config = config_file.get_section()?;
 
     match args.command {
         Command::Sessions => sessions().await,
