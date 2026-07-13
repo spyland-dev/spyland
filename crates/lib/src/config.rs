@@ -56,14 +56,15 @@ impl ConfigFile {
         Ok(())
     }
 
-    /// Gets the [section](ConfigSection) from a config.
-    pub fn get_section<T>(&self) -> Result<T>
+    /// Gets the section by its name from a config. If possible, prefer implementing [`ConfigSection`]
+    /// on your type and using [`Self::get_section`].
+    pub fn get_section_by_name<T>(&self, name: &str) -> Result<T>
     where
-        T: ConfigSection,
+        T: DeserializeOwned + Default,
     {
         let mut value = &self.value;
 
-        for part in T::SECTION.split('.') {
+        for part in name.split('.') {
             match value.get(part) {
                 Some(section) => value = section,
                 None => return Ok(T::default()),
@@ -73,36 +74,49 @@ impl ConfigFile {
         Ok(value.clone().try_into()?)
     }
 
-    /// Overwrites the [section](ConfigSection) with the one you provide.
-    pub fn set_section<T>(&mut self, section: T) -> Result<()>
+    /// Gets the [section](ConfigSection) from a config.
+    pub fn get_section<T>(&self) -> Result<T>
     where
         T: ConfigSection,
+    {
+        self.get_section_by_name(T::SECTION)
+    }
+
+    /// Overwrites the section by its name with the one you provide. If possible, prefer
+    /// implementing [`ConfigSection`] on your type and using [`Self::set_section`].
+    pub fn set_section_by_name<T>(&mut self, name: &str, section: T) -> Result<()>
+    where
+        T: Serialize,
     {
         let value = Value::try_from(section)?;
 
         let mut current = &mut self.value;
 
-        let mut parts = T::SECTION.split('.').peekable();
+        let mut parts = name.split('.').peekable();
 
         while let Some(part) = parts.next() {
             if parts.peek().is_some() {
                 current = current
                     .as_table_mut()
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("Config section '{}' is not a table", T::SECTION)
-                    })?
+                    .ok_or_else(|| anyhow::anyhow!("Config section '{}' is not a table", name))?
                     .entry(part)
                     .or_insert_with(|| Value::Table(Default::default()));
             } else {
                 current
                     .as_table_mut()
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("Parent section of '{}' is not a table", T::SECTION)
-                    })?
+                    .ok_or_else(|| anyhow::anyhow!("Parent section of '{}' is not a table", name))?
                     .insert(part.to_string(), value.clone());
             }
         }
 
         Ok(())
+    }
+
+    /// Overwrites the [section](ConfigSection) with the one you provide.
+    pub fn set_section<T>(&mut self, section: T) -> Result<()>
+    where
+        T: ConfigSection,
+    {
+        self.set_section_by_name(T::SECTION, section)
     }
 }
