@@ -26,7 +26,7 @@ mod app;
     long_about = "Background daemon for continuous screen time tracking
 Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
 Licensed under the GNU General Public License v3.0
-See source code on GitHub: https://github.com/NonExistPlayer/spyland"
+See source code on GitHub: https://github.com/spyland-dev/spyland"
 )]
 struct Cli {
     /// Path to database file
