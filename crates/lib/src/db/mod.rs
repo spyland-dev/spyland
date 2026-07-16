@@ -140,6 +140,18 @@ impl Db {
             .await?)
     }
 
+    /// Returns all elements from the table that intersect with the specified range.
+    pub async fn query_range(&self, from: i64, to: i64) -> Result<Vec<SessionSql>> {
+        Ok(query_as!(
+            SessionSql,
+            "SELECT * FROM sessions WHERE start < ?1 AND end > ?2",
+            to,
+            from
+        )
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
     /// Updates a session entry by its row ID.
     ///
     /// # Arguments

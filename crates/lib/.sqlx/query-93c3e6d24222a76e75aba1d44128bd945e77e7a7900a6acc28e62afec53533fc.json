@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM sessions WHERE start < ?1 AND end > ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "start",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "end",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_active",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "app_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "workspace",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "93c3e6d24222a76e75aba1d44128bd945e77e7a7900a6acc28e62afec53533fc"
+}
