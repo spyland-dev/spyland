@@ -33,6 +33,13 @@ impl IpcServer {
         Ok(Self { listener })
     }
 
+    #[cfg(feature = "path")]
+    /// Creates new instance of [`IpcServer`].
+    /// Uses [`crate::path::ensure_socket_path`] to get path.
+    pub fn open_default() -> Result<Self> {
+        Self::new(crate::path::ensure_socket_path()?)
+    }
+
     /// Accepts a new connection to server socket.
     ///
     /// <div class="warning">That will block this thread until socket gets a client!</div>
@@ -79,6 +86,13 @@ impl IpcClient {
         Ok(Self {
             stream: UnixStream::connect(path)?,
         })
+    }
+
+    #[cfg(feature = "path")]
+    /// Creates new instance of [`IpcClient`].
+    /// Connects to socket by path from [`crate::path::get_socket_path`].
+    pub fn open_default() -> Result<Self> {
+        Self::new(crate::path::get_socket_path()?)
     }
 
     /// Returns [`UnixStream`] of this client.

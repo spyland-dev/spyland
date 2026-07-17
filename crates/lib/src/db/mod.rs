@@ -75,6 +75,12 @@ impl Db {
         })
     }
 
+    #[cfg(feature = "path")]
+    /// Opens database by [`crate::path::ensure_database_path`].
+    pub async fn open_default() -> Result<Self> {
+        Self::open(crate::path::ensure_database_path()?, false).await
+    }
+
     /// Read-only opens database by its path.
     ///
     /// # Example

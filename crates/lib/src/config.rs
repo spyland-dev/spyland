@@ -42,6 +42,12 @@ impl ConfigFile {
         Ok(Self { path, value })
     }
 
+    #[cfg(feature = "path")]
+    /// Opens the config file by using [`crate::path::ensure_config_path`].
+    pub fn open_default() -> Result<Self> {
+        Self::new(crate::path::ensure_config_path()?)
+    }
+
     /// Updates the current value by reading the config file.
     pub fn load(&mut self) -> Result<()> {
         self.value = toml::from_str(&fs::read_to_string(&self.path)?)?;
