@@ -19,7 +19,6 @@ use spyland_lib::{
         IpcClient,
         protocol::{self, Request as IpcRequest, Response as IpcResponse},
     },
-    path,
 };
 
 pub struct NiriBackend {
@@ -38,7 +37,7 @@ impl NiriBackend {
     pub fn try_default() -> Result<Self> {
         Ok(Self {
             socket_path: None,
-            client: IpcClient::new(path::get_socket_path()?)?,
+            client: IpcClient::open_default()?,
         })
     }
 

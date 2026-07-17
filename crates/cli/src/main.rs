@@ -63,7 +63,6 @@ use spyland_core::{Session, SessionAnalytics, State};
 use spyland_lib::{
     config::{ConfigFile, ConfigSection},
     db::Db,
-    path::{self, get_database_path},
 };
 use std::fmt::Write;
 use time::{OffsetDateTime, UtcOffset, format_description};
@@ -72,7 +71,7 @@ use time::{OffsetDateTime, UtcOffset, format_description};
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let config_file = ConfigFile::new(path::ensure_config_path()?)?;
+    let config_file = ConfigFile::open_default()?;
 
     let config: Config = config_file.get_section()?;
 
@@ -115,7 +114,7 @@ fn human_duration(seconds: u64) -> String {
 }
 
 async fn sessions() -> Result<()> {
-    let db = Db::open_readonly(get_database_path()?).await?;
+    let db = Db::open_default().await?;
 
     let sessions: Vec<Session> = db
         .query_all()
@@ -176,7 +175,7 @@ async fn sessions() -> Result<()> {
 }
 
 async fn time(ascending: bool, by_time: bool) -> Result<()> {
-    let db = Db::open_readonly(get_database_path()?).await?;
+    let db = Db::open_default().await?;
 
     let sessions: Vec<Session> = db
         .query_all()
