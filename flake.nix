@@ -24,6 +24,7 @@
 
 	  cargo-nextest # optional
 
+	  sqlite
 	  sqlx-cli
 	];
 
