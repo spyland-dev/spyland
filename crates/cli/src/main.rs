@@ -126,32 +126,25 @@ async fn sessions() -> Result<()> {
     let mut old_start = 0;
 
     let offset = UtcOffset::current_local_offset()?;
-    let format = format_description::parse("[hour]:[minute]")?;
+    let date_format =
+        format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
+    let time_format = format_description::parse("[hour]:[minute]")?;
 
     for session in sessions {
         println!("|\n|");
 
-        let dt = OffsetDateTime::from_unix_timestamp(session.start as i64)?;
+        let datetime = OffsetDateTime::from_unix_timestamp(session.start as i64)?.to_offset(offset);
 
-        {
-            let odt = OffsetDateTime::from_unix_timestamp(old_start)?;
+        let old_datetime = OffsetDateTime::from_unix_timestamp(old_start)?;
 
-            if dt.month() != odt.month() || dt.day() != odt.day() {
-                println!("#    {}", {
-                    let offset = UtcOffset::current_local_offset()?;
-                    let format = format_description::parse(
-                        "[weekday repr:short], [day] [month repr:long] [year]",
-                    )?;
-
-                    dt.to_offset(offset).format(&format)?
-                });
-                println!("|\n|");
-            }
+        if datetime.date() != old_datetime.date() {
+            println!("#    {}", datetime.format(&date_format)?);
+            println!("|\n|");
         }
 
         print!(
             "@--- ({}) {}: ",
-            dt.to_offset(offset).format(&format)?,
+            datetime.format(&time_format)?,
             human_duration(session.end - session.start)
         );
 
