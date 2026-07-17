@@ -5,10 +5,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use spyland_lib::config::{ConfigFile, ConfigSection};
 
 #[derive(Parser)]
 #[command(
@@ -60,10 +58,18 @@ enum Command {
     },
 }
 
+use anyhow::Result;
+use spyland_core::{Session, SessionAnalytics, State};
+use spyland_lib::{
+    config::{ConfigFile, ConfigSection},
+    db::Db,
+    path::{self, get_database_path},
+};
+use std::fmt::Write;
+use time::{OffsetDateTime, UtcOffset, format_description};
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    use spyland_lib::path;
-
     let args = Args::parse();
 
     let config_file = ConfigFile::new(path::ensure_config_path()?)?;
@@ -83,8 +89,6 @@ async fn main() -> Result<()> {
 }
 
 fn human_duration(seconds: u64) -> String {
-    use std::fmt::Write;
-
     if seconds == 0 {
         return "0s".to_owned();
     }
@@ -111,11 +115,6 @@ fn human_duration(seconds: u64) -> String {
 }
 
 async fn sessions() -> Result<()> {
-    use spyland_core::{Session, State};
-    use spyland_lib::db::Db;
-    use spyland_lib::path::get_database_path;
-    use time::{OffsetDateTime, UtcOffset, format_description};
-
     let db = Db::open_readonly(get_database_path()?).await?;
 
     let sessions: Vec<Session> = db
@@ -177,10 +176,6 @@ async fn sessions() -> Result<()> {
 }
 
 async fn time(ascending: bool, by_time: bool) -> Result<()> {
-    use spyland_core::{Session, SessionAnalytics};
-    use spyland_lib::db::Db;
-    use spyland_lib::path::get_database_path;
-
     let db = Db::open_readonly(get_database_path()?).await?;
 
     let sessions: Vec<Session> = db
