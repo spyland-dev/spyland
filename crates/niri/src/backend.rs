@@ -14,11 +14,9 @@ use anyhow::{Context, Result};
 use log::warn;
 use niri_ipc::{Event as NiriEvent, Request as NiriRequest, Window, socket::Socket};
 use spyland_core::Event as CoreEvent;
-use spyland_lib::{
-    ipc::{
-        IpcClient,
-        protocol::{self, Request as IpcRequest, Response as IpcResponse},
-    },
+use spyland_lib::ipc::{
+    IpcClient,
+    protocol::{self, Request as IpcRequest, Response as IpcResponse},
 };
 
 pub struct NiriBackend {
