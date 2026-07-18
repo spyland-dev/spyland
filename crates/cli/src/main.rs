@@ -21,6 +21,14 @@ See source code on GitHub: https://github.com/spyland-dev/spyland",
 struct Args {
     #[command(subcommand)]
     command: Command,
+
+    /// Start of the period (timestamp, date, time or datetime)
+    #[arg(short = 'F', long, global = true)]
+    from: Option<String>,
+
+    /// End of the period (timestamp, date, time or datetime)
+    #[arg(short = 'T', long, global = true)]
+    to: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -65,7 +73,7 @@ use spyland_lib::{
     db::Db,
 };
 use std::fmt::Write;
-use time::{OffsetDateTime, UtcOffset, format_description};
+use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
@@ -76,15 +84,78 @@ async fn main() -> Result<()> {
     let config: Config = config_file.get_section()?;
 
     match args.command {
-        Command::Sessions => sessions().await,
+        Command::Sessions => sessions(args.from, args.to).await,
         Command::Time { ascending, by_time } => {
             time(
                 ascending.unwrap_or(config.sort_ascending),
                 by_time.unwrap_or(config.sort_by_time),
+                args.from,
+                args.to,
             )
             .await
         }
     }
+}
+
+fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
+    let s = s.trim();
+
+    if let Ok(timestamp) = s.parse::<i64>() {
+        return Ok(timestamp);
+    }
+
+    if let Ok(odt) = OffsetDateTime::parse(s, &format_description::well_known::Rfc3339) {
+        return Ok(odt.unix_timestamp());
+    }
+
+    let normalized = s.replace(['+', '_', 'T'], " ");
+
+    let date_formats = [
+        "[year]-[month]-[day]",
+        "[year]/[month]/[day]",
+        "[year].[month].[day]",
+        "[month]-[day]-[year]",
+        "[month]/[day]/[year]",
+    ];
+
+    let time_formats = [
+        "[hour]:[minute]",
+        "[hour]:[minute]:[second]",
+        "[hour repr:12]:[minute] [period]",
+        "[hour repr:12]:[minute]:[second] [period]",
+    ];
+
+    for date_fmt in date_formats {
+        for time_fmt in time_formats {
+            let fmt_string = format!("{date_fmt} {time_fmt}");
+            if let Ok(format) = format_description::parse(&fmt_string)
+                && let Ok(pdt) = PrimitiveDateTime::parse(&normalized, &format)
+            {
+                return Ok(pdt.assume_offset(offset).unix_timestamp());
+            }
+        }
+    }
+
+    for date_fmt in date_formats {
+        if let Ok(format) = format_description::parse(date_fmt)
+            && let Ok(date) = Date::parse(s, &format)
+        {
+            let pdt = PrimitiveDateTime::new(date, Time::MIDNIGHT);
+            return Ok(pdt.assume_offset(offset).unix_timestamp());
+        }
+    }
+
+    for time_fmt in time_formats {
+        if let Ok(format) = format_description::parse(time_fmt)
+            && let Ok(time) = Time::parse(s, &format)
+        {
+            let today = OffsetDateTime::now_utc().to_offset(offset).date();
+            let pdt = PrimitiveDateTime::new(today, time);
+            return Ok(pdt.assume_offset(offset).unix_timestamp());
+        }
+    }
+
+    anyhow::bail!("Unsupported date/time format: '{s}'")
 }
 
 fn human_duration(seconds: u64) -> String {
@@ -113,17 +184,30 @@ fn human_duration(seconds: u64) -> String {
     str
 }
 
-async fn sessions() -> Result<()> {
+async fn load_sessions(from: Option<String>, to: Option<String>) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
+    let offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
-    let sessions: Vec<Session> = db
-        .query_all()
-        .await?
-        .into_iter()
-        .map(Session::from)
-        .collect();
+    let sessions_sql = match (from, to) {
+        (None, None) => db.query_all().await?,
+        (f, t) => {
+            let from_ts = match f {
+                Some(s) => parse_flexible_time(s, offset)?,
+                None => 0,
+            };
+            let to_ts = match t {
+                Some(s) => parse_flexible_time(s, offset)?,
+                None => OffsetDateTime::now_utc().to_offset(offset).unix_timestamp(),
+            };
+            db.query_range(from_ts, to_ts).await?
+        }
+    };
 
-    let mut old_start = 0;
+    Ok(sessions_sql.into_iter().map(Session::from).collect())
+}
+
+async fn sessions(from: Option<String>, to: Option<String>) -> Result<()> {
+    let sessions = load_sessions(from, to).await?;
 
     let offset = UtcOffset::current_local_offset()?;
     let date_format =
@@ -167,15 +251,13 @@ async fn sessions() -> Result<()> {
     Ok(())
 }
 
-async fn time(ascending: bool, by_time: bool) -> Result<()> {
-    let db = Db::open_default().await?;
-
-    let sessions: Vec<Session> = db
-        .query_all()
-        .await?
-        .into_iter()
-        .map(Session::from)
-        .collect();
+async fn time(
+    ascending: bool,
+    by_time: bool,
+    from: Option<String>,
+    to: Option<String>,
+) -> Result<()> {
+    let sessions = load_sessions(from, to).await?;
 
     let analytic = SessionAnalytics::new(sessions);
 
