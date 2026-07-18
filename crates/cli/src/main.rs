@@ -130,14 +130,14 @@ async fn sessions() -> Result<()> {
         format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
     let time_format = format_description::parse("[hour]:[minute]")?;
 
+    let mut old_datetime: Option<OffsetDateTime> = None;
+
     for session in sessions {
         println!("|\n|");
 
         let datetime = OffsetDateTime::from_unix_timestamp(session.start as i64)?.to_offset(offset);
 
-        let old_datetime = OffsetDateTime::from_unix_timestamp(old_start)?;
-
-        if datetime.date() != old_datetime.date() {
+        if old_datetime.is_none_or(|old| datetime.date() != old.date()) {
             println!("#    {}", datetime.format(&date_format)?);
             println!("|\n|");
         }
@@ -161,7 +161,7 @@ async fn sessions() -> Result<()> {
             }
         }
 
-        old_start = session.start as i64;
+        old_datetime = Some(datetime);
     }
 
     Ok(())
