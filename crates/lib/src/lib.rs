@@ -27,3 +27,9 @@ pub mod db;
 pub mod ipc;
 #[cfg(feature = "path")]
 pub mod path;
+
+#[cfg(not(any(feature = "db", feature = "ipc", feature = "path", feature = "config",)))]
+compile_error!(
+    "spyland-lib requires at least one feature to be enabled. Without any features,
+     this is literally an empty crate. You may have done it by accident."
+);
