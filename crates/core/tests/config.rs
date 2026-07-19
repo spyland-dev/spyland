@@ -7,7 +7,7 @@ use spyland_core::manager::Configuration;
 #[test]
 fn flush_interval_test() {
     let mut d = TestDriver::new();
-    const FLUSH_INTERVAL: u64 = 5;
+    const FLUSH_INTERVAL: i64 = 5;
 
     d.mgr.set_config(Configuration {
         flush_interval: FLUSH_INTERVAL,

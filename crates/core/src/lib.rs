@@ -26,12 +26,12 @@ pub struct Session {
     /// Session start time (UNIX timestamp in seconds).
     ///
     /// The exact format depends on the [Clock](manager::Clock) implementation.
-    pub start: u64,
+    pub start: i64,
 
     /// Session end time (UNIX timestamp in seconds).
     ///
     /// The exact format depends on the [Clock](manager::Clock) implementation.
-    pub end: u64,
+    pub end: i64,
 
     /// User state during this session.
     pub state: State,

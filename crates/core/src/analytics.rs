@@ -77,8 +77,8 @@ impl SessionAnalytics {
     ///
     /// assert_eq!(analytics.total_screen_time(), 70);
     /// ```
-    pub fn total_screen_time(&self) -> u64 {
-        let mut counter: u64 = 0;
+    pub fn total_screen_time(&self) -> i64 {
+        let mut counter: i64 = 0;
 
         for s in &self.sessions {
             if let State::Active { .. } = &s.state {
@@ -104,8 +104,8 @@ impl SessionAnalytics {
     /// let screen_time = analytics.screen_time_app(String::from("org.telegram.desktop"));
     /// # }
     /// ```
-    pub fn screen_time_app(&self, target_app_id: String) -> u64 {
-        let mut counter: u64 = 0;
+    pub fn screen_time_app(&self, target_app_id: String) -> i64 {
+        let mut counter: i64 = 0;
 
         for s in &self.sessions {
             if let State::Active { app_id, .. } = &s.state
@@ -130,8 +130,8 @@ impl SessionAnalytics {
     /// let total_idle_time = analytics.idle_time();
     /// # }
     /// ```
-    pub fn idle_time(&self) -> u64 {
-        let mut counter: u64 = 0;
+    pub fn idle_time(&self) -> i64 {
+        let mut counter: i64 = 0;
 
         for s in &self.sessions {
             if let State::Idle = &s.state {
@@ -159,7 +159,7 @@ impl SessionAnalytics {
     ///     println!("Application: {key}, Time: {value} seconds");
     /// }
     /// ```
-    pub fn time_for_each_app(&self) -> HashMap<String, u64> {
+    pub fn time_for_each_app(&self) -> HashMap<String, i64> {
         let mut hash_map = HashMap::new();
 
         for s in &self.sessions {

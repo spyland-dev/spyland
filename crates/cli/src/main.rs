@@ -162,7 +162,7 @@ fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
     anyhow::bail!("Unsupported date/time format: '{s}'")
 }
 
-fn human_duration(seconds: u64) -> String {
+fn human_duration(seconds: i64) -> String {
     if seconds == 0 {
         return "0s".to_owned();
     }
@@ -233,7 +233,7 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
     for session in sessions {
         println!("|\n|");
 
-        let datetime = OffsetDateTime::from_unix_timestamp(session.start as i64)?.to_offset(offset);
+        let datetime = OffsetDateTime::from_unix_timestamp(session.start)?.to_offset(offset);
 
         if old_datetime.is_none_or(|old| datetime.date() != old.date()) {
             println!("#    {}", datetime.format(&date_format)?);
@@ -276,7 +276,7 @@ async fn time(
     let analytic = SessionAnalytics::new(sessions);
 
     let time = analytic.time_for_each_app();
-    let mut stat: Vec<(&String, &u64)> = time.iter().collect();
+    let mut stat: Vec<(&String, &i64)> = time.iter().collect();
 
     stat.sort_by(|x, y| {
         let cmp = if by_time { x.1.cmp(y.1) } else { x.0.cmp(y.0) };

@@ -51,8 +51,8 @@ impl From<Session> for SessionSql {
         }
 
         Self {
-            start: session.start as i64,
-            end: session.end as i64,
+            start: session.start,
+            end: session.end,
 
             is_active,
 
@@ -66,8 +66,8 @@ impl From<SessionSql> for Session {
     fn from(value: SessionSql) -> Self {
         if value.is_active {
             Self {
-                start: value.start as u64,
-                end: value.end as u64,
+                start: value.start,
+                end: value.end,
 
                 state: State::Active {
                     app_id: value.app_id.unwrap(),
@@ -76,8 +76,8 @@ impl From<SessionSql> for Session {
             }
         } else {
             Self {
-                start: value.start as u64,
-                end: value.end as u64,
+                start: value.start,
+                end: value.end,
 
                 state: State::Idle,
             }

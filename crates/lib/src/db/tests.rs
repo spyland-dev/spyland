@@ -36,8 +36,8 @@ async fn insert_integrity_test(pool: SqlitePool) {
 
     db.create().await.unwrap();
 
-    const START: u64 = 1;
-    const END: u64 = 31;
+    const START: i64 = 1;
+    const END: i64 = 31;
     const APP_ID: &str = "steam";
     const WORKSPACE: i32 = 3;
 
@@ -59,8 +59,8 @@ async fn insert_integrity_test(pool: SqlitePool) {
         .await
         .unwrap();
 
-    assert_eq!(result.start, START as i64);
-    assert_eq!(result.end, END as i64);
+    assert_eq!(result.start, START);
+    assert_eq!(result.end, END);
     assert!(result.is_active);
     assert_eq!(result.app_id, Some(APP_ID.into()));
     assert_eq!(result.workspace, Some(WORKSPACE as i64));
@@ -68,8 +68,8 @@ async fn insert_integrity_test(pool: SqlitePool) {
 
 #[test]
 fn session_mapping_test() {
-    const START: u64 = 1;
-    const END: u64 = 16;
+    const START: i64 = 1;
+    const END: i64 = 16;
 
     const APP_ID: &str = "example_test_app_id";
     const WORKSPACE: i32 = 2;
@@ -86,8 +86,8 @@ fn session_mapping_test() {
 
     let session_sql: SessionSql = session.into();
 
-    assert_eq!(session_sql.start, START as i64);
-    assert_eq!(session_sql.end, END as i64);
+    assert_eq!(session_sql.start, START);
+    assert_eq!(session_sql.end, END);
     assert!(session_sql.is_active);
     assert_eq!(session_sql.app_id, Some(APP_ID.into()));
     assert_eq!(session_sql.workspace, Some(WORKSPACE as i64));
@@ -148,7 +148,7 @@ async fn update_last_test(pool: SqlitePool) {
 
     db.create().await.unwrap();
 
-    const S1_END: u64 = 20;
+    const S1_END: i64 = 20;
 
     let session1 = Session {
         start: 1,
@@ -159,9 +159,9 @@ async fn update_last_test(pool: SqlitePool) {
         },
     };
 
-    const START: u64 = 20;
+    const START: i64 = 20;
     const APP_ID: &str = "steam";
-    const S2_END: u64 = 60;
+    const S2_END: i64 = 60;
 
     let session2 = Session {
         start: START,
@@ -176,8 +176,8 @@ async fn update_last_test(pool: SqlitePool) {
     db.insert(session2.into()).await.unwrap();
 
     let updated_last = SessionSql {
-        start: START as i64,
-        end: S2_END as i64,
+        start: START,
+        end: S2_END,
         is_active: true,
         app_id: Some(APP_ID.into()),
         workspace: Some(2),
@@ -188,8 +188,8 @@ async fn update_last_test(pool: SqlitePool) {
 
     let sessions = db.query_all().await.unwrap();
     assert_eq!(sessions.len(), 2);
-    assert_eq!(sessions[0].end, S1_END as i64);
-    assert_eq!(sessions[1].end, S2_END as i64);
+    assert_eq!(sessions[0].end, S1_END);
+    assert_eq!(sessions[1].end, S2_END);
 }
 
 #[sqlx::test]

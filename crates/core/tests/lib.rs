@@ -25,7 +25,7 @@ fn simple_session() {
 fn session_time_test() {
     let mut d = TestDriver::new();
 
-    const TIME: u64 = 30;
+    const TIME: i64 = 30;
 
     d.event(Event::ActiveWindowChanged(Some("firefox".into())));
     d.tick(TIME);

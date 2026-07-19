@@ -97,10 +97,12 @@ async fn main() -> Result<()> {
 struct SystemClock;
 
 impl Clock for SystemClock {
-    fn now(&self) -> u64 {
+    fn now(&self) -> i64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time went backwards")
             .as_secs()
+            .try_into()
+            .unwrap()
     }
 }

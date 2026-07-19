@@ -22,11 +22,13 @@ use crate::{Event, Session, State};
 /// # use spyland_core::manager::Clock;
 /// struct SystemClock;
 /// impl Clock for SystemClock {
-///     fn now(&self) -> u64 {
+///     fn now(&self) -> i64 {
 ///         std::time::SystemTime::now()
 ///             .duration_since(std::time::UNIX_EPOCH)
 ///             .unwrap()
 ///             .as_secs()
+///             .try_into()
+///             .unwrap()
 ///     }
 /// }
 /// ```
@@ -35,10 +37,10 @@ use crate::{Event, Session, State};
 /// ```
 /// # use spyland_core::manager::Clock;
 /// struct MockClock {
-///     current_time: u64,
+///     current_time: i64,
 /// }
 /// impl Clock for MockClock {
-///     fn now(&self) -> u64 {
+///     fn now(&self) -> i64 {
 ///         self.current_time
 ///     }
 /// }
@@ -48,7 +50,7 @@ pub trait Clock {
     ///
     /// Should return time as a UNIX timestamp (seconds since epoch),
     /// but it depends on the [Clock] implementation.
-    fn now(&self) -> u64;
+    fn now(&self) -> i64;
 }
 
 /// Structure that handles [Event]s and manages [Session]s.
@@ -58,7 +60,7 @@ pub struct SessionManager<C: Clock> {
     clock: C,
     sessions: Vec<Session>,
     old_session: Option<Session>,
-    last_flush: u64,
+    last_flush: i64,
     config: Configuration,
 }
 
@@ -107,7 +109,7 @@ pub struct Configuration {
     /// Interval of automatic flushes.
     ///
     /// See about [time abstraction](Clock) and [flushing](SessionManager::flush).
-    pub flush_interval: u64,
+    pub flush_interval: i64,
     /// The list of hidden applications.
     ///
     /// [SessionManager] will ignore applications from this list.
@@ -117,7 +119,7 @@ pub struct Configuration {
     /// [Session]s that have less duration than this value will be filtered out.
     ///
     /// See [time abstraction](Clock).
-    pub min_session_duration: u64,
+    pub min_session_duration: i64,
 }
 
 impl Default for Configuration {
@@ -335,9 +337,9 @@ impl<C: Clock> SessionManager<C> {
     /// ```
     /// use spyland_core::manager::{SessionManager, Clock};
     ///
-    /// struct MockClock { time: u64 }
+    /// struct MockClock { time: i64 }
     /// impl Clock for MockClock {
-    ///     fn now(&self) -> u64 { self.time }
+    ///     fn now(&self) -> i64 { self.time }
     /// }
     ///
     /// let mut manager = SessionManager::new(MockClock { time: 0 });
