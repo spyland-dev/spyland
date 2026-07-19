@@ -1,21 +1,24 @@
-default: check
+default: fmt build clippy
 
+[working-directory: invocation_directory()]
 fmt:
-    cargo fmt --all -- --check
+    cargo fmt -- --check
 
+[working-directory: invocation_directory()]
 build:
-    cargo build --workspace --quiet
+    cargo build --quiet
 
+[working-directory: invocation_directory()]
 test:
-    @if command -v cargo-nextest >/dev/null; then \
-        cargo nextest run; \
-    else \
-        cargo test --workspace --quiet; \
-    fi
-doc:
-    cargo doc --workspace --no-deps --quiet
+    cargo nextest run --no-tests pass
 
+[working-directory: invocation_directory()]
 clippy:
-    cargo clippy --workspace --all-targets --all-features --quiet -- -D warnings
+    cargo clippy --all-targets --all-features --quiet -- -D warnings
+
+[working-directory: invocation_directory()]
+doc:
+    cargo test --doc --quiet
+    cargo doc --no-deps --quiet
 
 check: fmt build test doc clippy
