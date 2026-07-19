@@ -54,7 +54,11 @@ impl Default for Config {
 #[derive(Subcommand, Clone)]
 enum Command {
     /// Shows all your sessions in a row
-    Sessions,
+    Sessions {
+        /// Maximum number of sessions to display.
+        #[arg(short = 'l', long)]
+        limit: Option<i64>,
+    },
     /// Shows your total screen time
     Time {
         /// Sort ascending
@@ -70,7 +74,7 @@ use anyhow::Result;
 use spyland_core::{Session, SessionAnalytics, State};
 use spyland_lib::{
     config::{ConfigFile, ConfigSection},
-    db::Db,
+    db::{Db, QueryFilter},
 };
 use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
@@ -84,7 +88,7 @@ async fn main() -> Result<()> {
     let config: Config = config_file.get_section()?;
 
     match args.command {
-        Command::Sessions => sessions(args.from, args.to).await,
+        Command::Sessions { limit } => sessions(args.from, args.to, limit).await,
         Command::Time { ascending, by_time } => {
             time(
                 ascending.unwrap_or(config.sort_ascending),
@@ -184,30 +188,40 @@ fn human_duration(seconds: u64) -> String {
     str
 }
 
-async fn load_sessions(from: Option<String>, to: Option<String>) -> Result<Vec<Session>> {
+async fn load_sessions(
+    from: Option<String>,
+    to: Option<String>,
+    limit: Option<i64>,
+) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
     let offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
-    let sessions_sql = match (from, to) {
-        (None, None) => db.query_all().await?,
-        (f, t) => {
-            let from_ts = match f {
-                Some(s) => parse_flexible_time(s, offset)?,
-                None => 0,
+    let sessions_sql = match (from, to, limit) {
+        (None, None, None) => db.query_all().await?,
+        (f, t, limit) => {
+            let from = match f {
+                Some(s) => Some(parse_flexible_time(s, offset)?),
+                None => None,
             };
-            let to_ts = match t {
-                Some(s) => parse_flexible_time(s, offset)?,
-                None => OffsetDateTime::now_utc().to_offset(offset).unix_timestamp(),
+            let to = match t {
+                Some(s) => Some(parse_flexible_time(s, offset)?),
+                None => None,
             };
-            db.query_range(from_ts, to_ts).await?
+            db.query_filtered(QueryFilter {
+                from,
+                to,
+                limit,
+                ..Default::default()
+            })
+            .await?
         }
     };
 
     Ok(sessions_sql.into_iter().map(Session::from).collect())
 }
 
-async fn sessions(from: Option<String>, to: Option<String>) -> Result<()> {
-    let sessions = load_sessions(from, to).await?;
+async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) -> Result<()> {
+    let sessions = load_sessions(from, to, limit).await?;
 
     let offset = UtcOffset::current_local_offset()?;
     let date_format =
@@ -257,7 +271,7 @@ async fn time(
     from: Option<String>,
     to: Option<String>,
 ) -> Result<()> {
-    let sessions = load_sessions(from, to).await?;
+    let sessions = load_sessions(from, to, None).await?;
 
     let analytic = SessionAnalytics::new(sessions);
 
