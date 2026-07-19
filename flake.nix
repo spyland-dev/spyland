@@ -22,6 +22,8 @@
 	  rust-analyzer
 	  clippy
 
+	  just
+
 	  cargo-nextest # optional
 
 	  sqlite
