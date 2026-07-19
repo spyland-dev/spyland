@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT start, end, is_active, app_id, workspace\n            FROM sessions\n            WHERE (?1 IS NULL OR start >= ?1)\n              AND (?2 IS NULL OR end <= ?2)\n            ORDER BY\n              CASE WHEN ?3 = 'duration_asc' THEN (end - start) END ASC,\n              CASE WHEN ?3 = 'duration_desc' THEN (end - start) END DESC,\n              CASE WHEN ?4 = 'start_asc' THEN start END ASC,\n              CASE WHEN ?4 = 'start_desc' THEN start END DESC,\n              CASE WHEN ?3 IS NULL AND ?4 IS NULL THEN start END ASC\n            LIMIT COALESCE(?5, -1) OFFSET COALESCE(?6, 0)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "start",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "end",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_active",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "app_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "workspace",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "e359f61f4a31f5b72a07cef540056a60e1a34794eb0626cce444c9916e7ebeb6"
+}

@@ -191,3 +191,107 @@ async fn update_last_test(pool: SqlitePool) {
     assert_eq!(sessions[0].end, S1_END as i64);
     assert_eq!(sessions[1].end, S2_END as i64);
 }
+
+#[sqlx::test]
+async fn query_filtered_test(pool: SqlitePool) {
+    use crate::db::{QueryFilter, SortOrder};
+
+    let db = Db { pool };
+    db.create().await.unwrap();
+
+    const S1_APP_ID: &str = "firefox";
+    const S2_APP_ID: &str = "chromium";
+    const S3_APP_ID: &str = "steam";
+
+    let s1 = Session {
+        start: 10,
+        end: 15,
+        state: State::Active {
+            app_id: S1_APP_ID.into(),
+            workspace: Some(1),
+        },
+    };
+    let s2 = Session {
+        start: 20,
+        end: 35,
+        state: State::Active {
+            app_id: S2_APP_ID.into(),
+            workspace: Some(2),
+        },
+    };
+    let s3 = Session {
+        start: 30,
+        end: 32,
+        state: State::Active {
+            app_id: S3_APP_ID.into(),
+            workspace: Some(3),
+        },
+    };
+
+    db.insert(s1.into()).await.unwrap();
+    db.insert(s2.into()).await.unwrap();
+    db.insert(s3.into()).await.unwrap();
+
+    // 1. Test from/to filter
+    let results = db
+        .query_filtered(QueryFilter {
+            from: Some(15),
+            to: Some(33),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].app_id, Some(S3_APP_ID.into()));
+
+    // 2. Test sort_by_duration ascending
+    let results = db
+        .query_filtered(QueryFilter {
+            sort_by_duration: Some(SortOrder::Ascending),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 3);
+    assert_eq!(results[0].app_id, Some(S3_APP_ID.into()));
+    assert_eq!(results[1].app_id, Some(S1_APP_ID.into()));
+    assert_eq!(results[2].app_id, Some(S2_APP_ID.into()));
+
+    // 3. Test sort_by_duration descending
+    let results = db
+        .query_filtered(QueryFilter {
+            sort_by_duration: Some(SortOrder::Descending),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 3);
+    assert_eq!(results[0].app_id, Some(S2_APP_ID.into()));
+    assert_eq!(results[1].app_id, Some(S1_APP_ID.into()));
+    assert_eq!(results[2].app_id, Some(S3_APP_ID.into()));
+
+    // 4. Test sort_by_start descending with limit & offset
+    let results = db
+        .query_filtered(QueryFilter {
+            sort_by_start: Some(SortOrder::Descending),
+            limit: Some(2),
+            offset: Some(1),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].app_id, Some(S2_APP_ID.into()));
+    assert_eq!(results[1].app_id, Some(S1_APP_ID.into()));
+
+    // 5. Test query_last helper
+    let results = db.query_last(2).await.unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].app_id, Some(S3_APP_ID.into()));
+    assert_eq!(results[1].app_id, Some(S2_APP_ID.into()));
+
+    // 6. Test query_range helper
+    let results = db.query_range(15, 33).await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].app_id, Some(S3_APP_ID.into()));
+}

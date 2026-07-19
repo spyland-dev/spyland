@@ -21,6 +21,37 @@ mod sessql;
 #[cfg(test)]
 mod tests;
 
+/// Specifies the sorting order of query results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortOrder {
+    /// Sort in ascending order (smallest/oldest first).
+    Ascending,
+    /// Sort in descending order (largest/newest first).
+    Descending,
+}
+
+/// A filter structure to customize database queries for sessions.
+///
+/// Contains options to filter by time range, limit the number of returned entries,
+/// paginate results using an offset, and specify the sorting order.
+#[derive(Debug, Clone, Default)]
+pub struct QueryFilter {
+    /// Lower bound of the time range (inclusive), represented as a Unix timestamp.
+    pub from: Option<i64>,
+    /// Upper bound of the time range (inclusive), represented as a Unix timestamp.
+    pub to: Option<i64>,
+
+    /// Maximum number of sessions to return.
+    pub limit: Option<i64>,
+    /// Number of sessions to skip before returning results (used for pagination).
+    pub offset: Option<i64>,
+
+    /// Optional sorting order based on session duration (end - start).
+    pub sort_by_duration: Option<SortOrder>,
+    /// Optional sorting order based on session start time.
+    pub sort_by_start: Option<SortOrder>,
+}
+
 /// Useful wrapper to manage database.
 ///
 /// # Example
@@ -147,12 +178,69 @@ impl Db {
     }
 
     /// Returns all elements from the table that intersect with the specified range.
+    ///
+    /// # Arguments
+    /// * `from` --- lower bound of the start time (inclusive)
+    /// * `to` --- upper bound of the end time (inclusive)
     pub async fn query_range(&self, from: i64, to: i64) -> Result<Vec<SessionSql>> {
+        self.query_filtered(QueryFilter {
+            from: Some(from),
+            to: Some(to),
+            ..Default::default()
+        })
+        .await
+    }
+
+    /// Returns the most recent sessions, sorted descending by start time.
+    ///
+    /// # Arguments
+    /// * `n` --- the maximum number of sessions to return
+    pub async fn query_last(&self, n: i64) -> Result<Vec<SessionSql>> {
+        self.query_filtered(QueryFilter {
+            limit: Some(n),
+            sort_by_start: Some(SortOrder::Descending),
+            ..Default::default()
+        })
+        .await
+    }
+
+    /// Returns filtered elements from the table based on the provided filter options.
+    ///
+    /// # Arguments
+    /// * `filter` --- the query filters, sorting, and pagination configuration to apply
+    pub async fn query_filtered(&self, filter: QueryFilter) -> Result<Vec<SessionSql>> {
+        let sort_duration = match filter.sort_by_duration {
+            Some(SortOrder::Ascending) => Some("duration_asc"),
+            Some(SortOrder::Descending) => Some("duration_desc"),
+            None => None,
+        };
+        let sort_start = match filter.sort_by_start {
+            Some(SortOrder::Ascending) => Some("start_asc"),
+            Some(SortOrder::Descending) => Some("start_desc"),
+            None => None,
+        };
+
         Ok(query_as!(
             SessionSql,
-            "SELECT * FROM sessions WHERE start < ?1 AND end > ?2",
-            to,
-            from
+            r#"
+            SELECT start, end, is_active, app_id, workspace
+            FROM sessions
+            WHERE (?1 IS NULL OR start >= ?1)
+              AND (?2 IS NULL OR end <= ?2)
+            ORDER BY
+              CASE WHEN ?3 = 'duration_asc' THEN (end - start) END ASC,
+              CASE WHEN ?3 = 'duration_desc' THEN (end - start) END DESC,
+              CASE WHEN ?4 = 'start_asc' THEN start END ASC,
+              CASE WHEN ?4 = 'start_desc' THEN start END DESC,
+              CASE WHEN ?3 IS NULL AND ?4 IS NULL THEN start END ASC
+            LIMIT COALESCE(?5, -1) OFFSET COALESCE(?6, 0)
+            "#,
+            filter.from,
+            filter.to,
+            sort_duration,
+            sort_start,
+            filter.limit,
+            filter.offset
         )
         .fetch_all(&self.pool)
         .await?)
