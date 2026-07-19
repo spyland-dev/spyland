@@ -98,7 +98,7 @@ To run a binary crate, use `cargo run -p spyland` (for the CLI) and
 ## Code Style
 
 Use [`rustfmt`](https://github.com/rust-lang/rustfmt) for code formatting.
-You can use it directly via `cargo fmt` or through your LSP.
+You can run it directly via `cargo fmt` or through your LSP.
 
 ### Imports (`use`)
 
@@ -136,7 +136,7 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 ```
 
-Format imports however you find convenient — as long as `rustfmt` is satisfied.
+Format `use` imports however you find convenient — as long as `rustfmt` is satisfied.
 
 ## Tests
 
@@ -144,10 +144,9 @@ Format imports however you find convenient — as long as `rustfmt` is satisfied
 that all new code must be tested.
 
 Every new feature requires tests.
-Just like bug fixes: if you fix a bug, please write a test for the it.
+Just like bug fixes: if you fix a bug, please write a test for it.
 
-If you think you don't need them in your case, open an issue
-or include a justification in the PR.
+If you think they are not needed in your case, open an issue or include a justification in your PR.
 
 ### Constants
 
@@ -175,16 +174,16 @@ match &d.mgr.sessions()[0].state {
     _ => panic!("Incorrect state"),
 }
 ```
-**Incorrect**, only one using — no relationship:
+**Incorrect**, only used once — no relationship:
 ```rust
 const APP_ID: &str = "firefox";
 
 d.event(Event::ActiveWindowChanged(Some(APP_ID.into())));
 d.flush();
 
-assert_eq!(d.mgr.sessions().len(), 1, "Less then one sessions");
+assert_eq!(d.mgr.sessions().len(), 1, "Less than one session");
 ```
-**Correct**, there is constants and relationship:
+**Correct**, constants are used, showing relationship:
 ```rust
 const WORKSPACE: i32 = 1;
 const APP_ID: &str = "firefox";
@@ -279,7 +278,7 @@ Files in `docs/` must exist in two languages:
 Symbolic links to the English version are in the repository root.
 
 When modifying documentation:
-1. Update main english language
+1. Update the main English version
 2. Verify all links are correct (internal, external, images)
 3. Ensure translation is accurate
 4. Check formatting (headings, code, lists)
