@@ -23,11 +23,11 @@ struct Args {
     command: Command,
 
     /// Start of the period (timestamp, date, time or datetime)
-    #[arg(short = 'F', long, global = true)]
+    #[arg(short = 'f', long, global = true)]
     from: Option<String>,
 
     /// End of the period (timestamp, date, time or datetime)
-    #[arg(short = 'T', long, global = true)]
+    #[arg(short = 't', long, global = true)]
     to: Option<String>,
 }
 
@@ -56,7 +56,7 @@ enum Command {
     /// Shows all your sessions in a row
     Sessions {
         /// Maximum number of sessions to display.
-        #[arg(short = 'l', long)]
+        #[arg(short = 'L', long)]
         limit: Option<i64>,
     },
     /// Shows your total screen time
