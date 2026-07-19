@@ -8,6 +8,91 @@ Before creating a Pull Request to this project, please read this guide.
 
 Thank you for your interest in `spyland`!
 
+# Development
+
+## Environment
+
+Before you begin, you need to prepare the development environment.
+
+The easiest way is to use the provided Nix flake:
+```
+nix develop .
+```
+With this, you will get all the necessary packages and environment variables. No additional
+configuration is required.
+
+Alternatively, you can set up everything manually:
+
+1. **Dependencies**: In addition to Rust and Cargo, for comfortable development you will need:
+   - `clippy`: The linter integrated with CI and required for tests.
+   - `cargo-nextest`: A more convenient and less verbose test runner (optional).
+   - `just`: To run the necessary checks in a single command.
+   - `sqlite3` and `sqlx-cli`: For working with the database in `spyland-lib`.
+2. **Environment Variables**: For manual testing of the binary files, you will need:
+   - `SPYLAND_DATABASE`: Overrides the spyland database file path; use it to avoid conflicts.
+   - `SPYLAND_SOCKET`: Overrides the socket path for `spylandd`; use it to avoid conflicts.
+   - `SPYLAND_CONFIG`: Overrides the spyland config path; use it to avoid conflicts.
+   - `SQLX_OFFLINE`: Set to `true` to use cached database query results.
+   - `DATABASE_URL`: Specify the database path in the format: `sqlite:///path/to/it.sqlite`.
+   - `RUST_LOG`: Set to `debug`/`trace` for more detailed logging from the daemon and backends.
+
+You do not need to set the `SPYLAND_` variables unless you are using or plan to use spyland on a
+regular basis. These variables are needed to avoid conflicts with a potentially running spyland
+instance on your computer. Choose any path that is convenient for you.
+
+## Checks
+
+Our CI has several checks:
+- Formatting
+- Build
+- Tests + Doc-tests
+- Clippy
+
+You can run these checks in any way you want, as long as each of them matches the CI results.
+Note that CI rejects all Clippy warnings.
+
+> [!IMPORTANT]
+> The `sqlx` library used in `spyland-lib` (with `db` feature enabled) adds compile-time
+> verification for SQL queries. If you modify or add queries, you must update the `sqlx` offline
+> cache for CI verification. To update the cache, go to `crates/lib` and run: `cargo sqlx prepare`
+> (you must have `sqlx-cli` installed). Do not forget to commit the `.sqlx` directory containing
+> the cache!
+
+To run checks, go to the directory of a specific crate (to check only that crate) or to the
+repository root (to check all crates) and run the required commands:
+
+### Manually
+
+"Manually" means running each check command by command:
+
+1. Formatting: `cargo fmt --check`
+2. Build: `cargo build`
+3. Tests: `cargo test` or `cargo nextest run` + `cargo test --doc`
+4. Clippy: `cargo clippy --all-targets --all-features`
+
+> [!WARNING]
+> The commands may differ from CI and `justfile` for brevity and ease of use.
+
+### Using Just
+
+There is a `justfile` in the repository root. You can run all the necessary checks with a single command:
+```
+just check
+```
+Each check is split into its own recipe, which you can run using `just <RECIPE>`
+for example:`just fmt`, `just test`, `just doc`.
+
+> [!TIP]
+> For quick checks (formatting, build, and Clippy) and testing binaries, just use `just`. For a
+> complete verification (mandatory before commit/push), use `just check`.
+
+## Running and Installing
+
+To run a binary crate, use `cargo run -p spyland` (for the CLI) and
+`cargo run -p spylandd` (for the Unix daemon). For local installation, use
+`cargo install --path crates/cli` (for the CLI) and
+`cargo install --path crates/daemon` (for the Unix daemon).
+
 # Code
 
 ## Code Style
