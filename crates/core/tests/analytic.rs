@@ -5,8 +5,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use spyland_core::Event;
-use spyland_core::analytics::SessionAnalytics;
+use spyland_core::analytics::{SessionAnalytics, SessionGroup, group_sessions};
+use spyland_core::{Event, Session, State};
 
 mod common;
 use common::TestDriver;
@@ -132,4 +132,68 @@ fn analytic_time_for_each_app_test() {
 
     let time = h[APP_ID3];
     assert_eq!(time, 16);
+}
+
+#[test]
+fn group_sessions_test() {
+    const S1_APP_ID: &str = "firefox";
+    const S1_START: i64 = 0;
+    const S2_APP_ID: &str = "code";
+    const S2_START: i64 = 10;
+
+    let s1 = Session {
+        start: S1_START,
+        end: 10,
+        state: State::Active {
+            app_id: S1_APP_ID.into(),
+            workspace: Some(1),
+        },
+    };
+    let s2 = Session {
+        start: S2_START,
+        end: 20,
+        state: State::Active {
+            app_id: S2_APP_ID.into(),
+            workspace: Some(2),
+        },
+    };
+    let s3 = Session {
+        start: 20,
+        end: 30,
+        state: State::Active {
+            app_id: "steam".into(),
+            workspace: Some(3),
+        },
+    };
+    let s4 = Session {
+        start: 30,
+        end: 40,
+        state: State::Idle,
+    };
+
+    let dev_group = SessionGroup {
+        app_ids: vec![S2_APP_ID.into()],
+        workspaces: vec![2],
+    };
+    let browser_group = SessionGroup {
+        app_ids: vec![S1_APP_ID.into()],
+        workspaces: vec![],
+    };
+
+    let groups = vec![dev_group.clone(), browser_group.clone()];
+    let grouped = group_sessions(vec![s1, s2, s3, s4], &groups);
+
+    {
+        let group = grouped.get(&Some(dev_group.clone())).unwrap();
+        assert_eq!(group.len(), 1);
+        assert_eq!(group[0].start, S2_START);
+    }
+
+    {
+        let group = grouped.get(&Some(browser_group.clone())).unwrap();
+        assert_eq!(group.len(), 1);
+        assert_eq!(group[0].start, S1_START);
+    }
+
+    assert_eq!(grouped.get(&None).unwrap().len(), 2);
 }
