@@ -53,18 +53,6 @@ pub struct QueryFilter {
 }
 
 /// Useful wrapper to manage database.
-///
-/// # Example
-/// ```ignore
-/// // Opens database file
-/// let db = Db::open("/path/to/database.sqlite").await?;
-///
-/// db.create().await?; // Creating if not exists
-///
-/// let session: Session;
-/// db.insert(session.into()).await?; // Inserting session
-/// # }
-/// ```
 pub struct Db {
     pool: SqlitePool,
 }
