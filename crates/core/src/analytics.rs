@@ -8,6 +8,63 @@
 use crate::{Session, State};
 use std::collections::HashMap;
 
+/// A group of criteria to filter and classify sessions.
+///
+/// Holds application identifiers and workspace numbers to match against a [Session].
+/// For grouping sessions see [`group_sessions()`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SessionGroup {
+    /// List of application IDs. If empty, matches any application.
+    pub app_ids: Vec<String>,
+    /// List of workspace numbers. If empty, matches any workspace.
+    pub workspaces: Vec<i32>,
+}
+
+impl SessionGroup {
+    /// Checks if a session matches the group rules.
+    pub fn matches(&self, session: &Session) -> bool {
+        match &session.state {
+            State::Active { app_id, workspace } => {
+                let app_matches = self.app_ids.is_empty() || self.app_ids.contains(app_id);
+                let ws_matches = self.workspaces.is_empty()
+                    || workspace.is_some_and(|w| self.workspaces.contains(&w));
+
+                app_matches && ws_matches
+            }
+            State::Idle => false,
+        }
+    }
+}
+
+/// Groups a list of sessions by the provided [SessionGroup] rules.
+///
+/// Returns a [HashMap] where keys are `Some(group)` for sessions matching a group,
+/// or `None` for sessions that did not match any of the provided groups.
+///
+/// # Arguments
+/// - `sessions` --- collection of sessions to group
+/// - `groups` --- list of groups to match against
+pub fn group_sessions(
+    sessions: Vec<Session>,
+    groups: &[SessionGroup],
+) -> HashMap<Option<SessionGroup>, Vec<Session>> {
+    let mut map: HashMap<Option<SessionGroup>, Vec<Session>> = HashMap::new();
+
+    for session in sessions {
+        let mut matched_group = None;
+        for group in groups {
+            if group.matches(&session) {
+                matched_group = Some(group.clone());
+                break;
+            }
+        }
+        map.entry(matched_group).or_default().push(session);
+    }
+
+    map
+}
+
 /// Statistics for sessions.
 ///
 /// Provides methods to calculate various metrics from a collection of sessions,
