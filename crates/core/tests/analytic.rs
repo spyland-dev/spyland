@@ -6,7 +6,7 @@
  */
 
 use spyland_core::Event;
-use spyland_core::SessionAnalytics;
+use spyland_core::analytics::SessionAnalytics;
 
 mod common;
 use common::TestDriver;

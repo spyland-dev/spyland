@@ -5,6 +5,9 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+//! Provides basic tools like [grouping](group_sessions)
+//! and [time calculation](SessionAnalytics) to analyze user [Session]s.
+
 use crate::{Session, State};
 use std::collections::HashMap;
 
@@ -81,7 +84,8 @@ impl SessionAnalytics {
     ///
     /// # Example
     /// ```
-    /// use spyland_core::{SessionAnalytics, Session, State};
+    /// use spyland_core::analytics::SessionAnalytics;
+    /// use spyland_core::{Session, State};
     ///
     /// let sessions = vec![
     ///     Session {
@@ -113,7 +117,8 @@ impl SessionAnalytics {
     ///
     /// # Example
     /// ```
-    /// use spyland_core::{SessionAnalytics, Session, State};
+    /// use spyland_core::analytics::SessionAnalytics;
+    /// use spyland_core::{Session, State};
     ///
     /// let sessions = vec![
     ///     Session {
@@ -153,7 +158,7 @@ impl SessionAnalytics {
     ///
     /// # Example
     /// ```
-    /// use spyland_core::SessionAnalytics;
+    /// use spyland_core::analytics::SessionAnalytics;
     /// # fn main() {
     /// # let sessions = Vec::new();
     /// let analytics = SessionAnalytics::new(sessions);
@@ -179,7 +184,7 @@ impl SessionAnalytics {
     ///
     /// # Example
     /// ```
-    /// use spyland_core::SessionAnalytics;
+    /// use spyland_core::analytics::SessionAnalytics;
     /// # fn main() {
     /// # let sessions = Vec::new();
     /// let analytics = SessionAnalytics::new(sessions);
@@ -206,7 +211,7 @@ impl SessionAnalytics {
     ///
     /// # Example
     /// ```
-    /// use spyland_core::SessionAnalytics;
+    /// use spyland_core::analytics::SessionAnalytics;
     /// # let sessions = Vec::new();
     /// let analytics = SessionAnalytics::new(sessions);
     ///

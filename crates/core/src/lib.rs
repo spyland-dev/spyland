@@ -12,8 +12,7 @@
 
 #![deny(missing_docs)]
 
-mod analytics;
-pub use analytics::SessionAnalytics;
+pub mod analytics;
 
 pub mod manager;
 

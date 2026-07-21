@@ -71,7 +71,7 @@ enum Command {
 }
 
 use anyhow::Result;
-use spyland_core::{Session, SessionAnalytics, State};
+use spyland_core::{Session, State, analytics::SessionAnalytics};
 use spyland_lib::{
     config::{ConfigFile, ConfigSection},
     db::{Db, QueryFilter},
