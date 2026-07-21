@@ -11,6 +11,7 @@
 //! and [user states](State).
 
 #![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 pub mod analytics;
 
