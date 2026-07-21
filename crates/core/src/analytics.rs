@@ -113,7 +113,7 @@ impl SessionAnalytics {
     /// Returns the total screen time across all sessions.
     ///
     /// Sums the duration of all sessions regardless of application or state.
-    /// Time is measured in the same units as returned by [Clock::now].
+    /// Time is measured in the same units as returned by [crate::manager::Clock::now].
     ///
     /// # Example
     /// ```
