@@ -124,13 +124,22 @@ fn analytic_time_for_each_app_test() {
 
     assert_eq!(h.len(), 3);
 
-    let time = h[APP_ID1];
+    let time = h[&State::Active {
+        app_id: APP_ID1.into(),
+        workspace: None,
+    }];
     assert_eq!(time, 28 + 22);
 
-    let time = h[APP_ID2];
+    let time = h[&State::Active {
+        app_id: APP_ID2.into(),
+        workspace: None,
+    }];
     assert_eq!(time, 32);
 
-    let time = h[APP_ID3];
+    let time = h[&State::Active {
+        app_id: APP_ID3.into(),
+        workspace: None,
+    }];
     assert_eq!(time, 16);
 }
 

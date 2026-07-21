@@ -40,7 +40,7 @@ pub struct Session {
 ///
 /// Represents what the user is currently doing or their activity status.
 /// Used within [Session] to describe the context of screen time.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum State {
     /// Active state: user is focused on an application window.
     ///

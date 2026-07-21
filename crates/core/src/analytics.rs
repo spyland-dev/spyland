@@ -207,32 +207,41 @@ impl SessionAnalytics {
     /// Returns time for all applications.
     ///
     /// # Returns
-    /// Returns [HashMap], where the key is an application identifier ([String]), and the value is a time ([u64]).
+    /// Returns [HashMap], where the key is a [State], and the value is a time ([u64]).
     ///
     /// # Example
     /// ```
-    /// use spyland_core::analytics::SessionAnalytics;
+    /// use spyland_core::{State, analytics::SessionAnalytics};
     /// # let sessions = Vec::new();
     /// let analytics = SessionAnalytics::new(sessions);
     ///
     /// let time_for_all_apps = analytics.time_for_each_app();
     ///
-    /// for (key, value) in time_for_all_apps {
-    ///     println!("Application: {key}, Time: {value} seconds");
+    /// for (state, time) in time_for_all_apps {
+    ///     match state {
+    ///         State::Active { app_id, workspace } => {
+    ///             print!("Application: {app_id}");
+    ///             if let Some(w) = workspace {
+    ///                 print!(" ({w})");
+    ///             };
+    ///         },
+    ///         State::Idle => {
+    ///             print!("Idle");
+    ///         },
+    ///     }
+    ///     println!(", Time: {time} seconds");
     /// }
     /// ```
-    pub fn time_for_each_app(&self) -> HashMap<String, i64> {
+    pub fn time_for_each_app(&self) -> HashMap<State, i64> {
         let mut hash_map = HashMap::new();
 
         for s in &self.sessions {
-            if let State::Active { app_id, .. } = &s.state {
-                let duration = s.end - s.start;
+            let duration = s.end - s.start;
 
-                hash_map
-                    .entry(app_id.to_owned())
-                    .and_modify(|v| *v += duration)
-                    .or_insert(duration);
-            }
+            hash_map
+                .entry(s.state.to_owned())
+                .and_modify(|v| *v += duration)
+                .or_insert(duration);
         }
 
         hash_map
