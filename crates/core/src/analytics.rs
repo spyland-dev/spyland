@@ -218,18 +218,7 @@ impl SessionAnalytics {
     /// let time_for_all_apps = analytics.time_for_each_app();
     ///
     /// for (state, time) in time_for_all_apps {
-    ///     match state {
-    ///         State::Active { app_id, workspace } => {
-    ///             print!("Application: {app_id}");
-    ///             if let Some(w) = workspace {
-    ///                 print!(" ({w})");
-    ///             };
-    ///         },
-    ///         State::Idle => {
-    ///             print!("Idle");
-    ///         },
-    ///     }
-    ///     println!(", Time: {time} seconds");
+    ///     println!("{state}: {time} seconds");
     /// }
     /// ```
     pub fn time_for_each_app(&self) -> HashMap<State, i64> {

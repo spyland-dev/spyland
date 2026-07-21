@@ -61,6 +61,30 @@ pub enum State {
     Idle,
 }
 
+impl std::fmt::Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::Active {
+                app_id,
+                workspace: Some(w),
+            } => {
+                write!(f, "{app_id} ({w})")
+            }
+
+            State::Active {
+                app_id,
+                workspace: None,
+            } => {
+                write!(f, "{app_id}")
+            }
+
+            State::Idle => {
+                write!(f, "idle")
+            }
+        }
+    }
+}
+
 /// An abstraction of events from a Wayland compositor.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq)]
