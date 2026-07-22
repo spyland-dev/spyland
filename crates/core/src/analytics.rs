@@ -25,9 +25,9 @@ pub struct SessionGroup {
 }
 
 impl SessionGroup {
-    /// Checks if a session matches the group rules.
-    pub fn matches(&self, session: &Session) -> bool {
-        match &session.state {
+    /// Checks if a specified [State] matches the group rules.
+    pub fn matches(&self, state: &State) -> bool {
+        match state {
             State::Active { app_id, workspace } => {
                 let app_matches = self.app_ids.is_empty() || self.app_ids.contains(app_id);
                 let ws_matches = self.workspaces.is_empty()
@@ -57,7 +57,7 @@ pub fn group_sessions(
     for session in sessions {
         let mut matched_group = None;
         for group in groups {
-            if group.matches(&session) {
+            if group.matches(&session.state) {
                 matched_group = Some(group.clone());
                 break;
             }
