@@ -171,6 +171,18 @@ fn human_duration(seconds: i64) -> String {
     str
 }
 
+fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
+    let hex = s.trim().trim_start_matches('#');
+    if hex.len() == 6 {
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        Some((r, g, b))
+    } else {
+        None
+    }
+}
+
 async fn load_sessions(
     from: Option<String>,
     to: Option<String>,
@@ -292,7 +304,11 @@ async fn time(
         {
             for group in &groups {
                 if group.session_group.matches(state) {
-                    print!("[{}] ", group.name);
+                    if let Some((r, g, b)) = group.color.as_deref().and_then(parse_hex_color) {
+                        print!("\x1b[38;2;{r};{g};{b}m[{}]\x1b[0m ", group.name);
+                    } else {
+                        print!("[{}] ", group.name);
+                    }
                 }
             }
 

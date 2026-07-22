@@ -6,7 +6,7 @@ use spyland_lib::config::ConfigSection;
 pub struct Group {
     pub name: String,
     // pub icon: String,
-    // pub color: String,
+    pub color: Option<String>,
 
     #[serde(flatten)]
     pub session_group: SessionGroup,
@@ -17,7 +17,7 @@ pub struct Group {
 pub struct Config {
     pub sort_ascending: bool,
     pub sort_by_time: bool,
-    
+
     pub groups: Vec<Group>,
 }
 
