@@ -6,7 +6,6 @@
  */
 
 use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[command(
@@ -31,26 +30,6 @@ struct Args {
     to: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(default)]
-struct Config {
-    sort_ascending: bool,
-    sort_by_time: bool,
-}
-
-impl ConfigSection for Config {
-    const SECTION: &'static str = "frontend.cli";
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            sort_ascending: true,
-            sort_by_time: true,
-        }
-    }
-}
-
 #[derive(Subcommand, Clone)]
 enum Command {
     /// Shows all your sessions in a row
@@ -73,11 +52,14 @@ enum Command {
 use anyhow::Result;
 use spyland_core::{Session, State, analytics::SessionAnalytics};
 use spyland_lib::{
-    config::{ConfigFile, ConfigSection},
+    config::{ConfigFile},
     db::{Db, QueryFilter},
 };
 use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
+
+mod config;
+use crate::config::Config;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
