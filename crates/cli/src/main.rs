@@ -52,14 +52,14 @@ enum Command {
 use anyhow::Result;
 use spyland_core::{Session, State, analytics::SessionAnalytics};
 use spyland_lib::{
-    config::{ConfigFile},
+    config::ConfigFile,
     db::{Db, QueryFilter},
 };
 use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
 mod config;
-use crate::config::Config;
+use crate::config::{Config, Group};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
@@ -77,6 +77,7 @@ async fn main() -> Result<()> {
                 by_time.unwrap_or(config.sort_by_time),
                 args.from,
                 args.to,
+                config.groups,
             )
             .await
         }
@@ -252,6 +253,7 @@ async fn time(
     by_time: bool,
     from: Option<String>,
     to: Option<String>,
+    groups: Vec<Group>,
 ) -> Result<()> {
     let sessions = load_sessions(from, to, None).await?;
 
@@ -288,6 +290,12 @@ async fn time(
             workspace: _,
         } = state
         {
+            for group in &groups {
+                if group.session_group.matches(state) {
+                    print!("[{}] ", group.name);
+                }
+            }
+
             println!("{state}: {}", human_duration(*time));
         }
     }
