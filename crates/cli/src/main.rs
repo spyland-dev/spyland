@@ -276,14 +276,38 @@ async fn time(
     let analytic = SessionAnalytics::new(sessions);
 
     let time = analytic.time_for_each_app();
-    let mut stat: Vec<(&String, &i64)> = time.iter().collect();
+    let mut stat: Vec<(&State, &i64)> = time.iter().collect();
 
     stat.sort_by(|x, y| {
-        let cmp = if by_time { x.1.cmp(y.1) } else { x.0.cmp(y.0) };
+        let cmp = if by_time {
+            x.1.cmp(y.1)
+        } else {
+            match (x.0, y.0) {
+                (
+                    State::Active {
+                        app_id: x,
+                        workspace: _,
+                    },
+                    State::Active {
+                        app_id: y,
+                        workspace: _,
+                    },
+                ) => x.cmp(y),
+
+                (_, State::Idle) => std::cmp::Ordering::Less,
+                (State::Idle, _) => std::cmp::Ordering::Greater,
+            }
+        };
         if ascending { cmp } else { cmp.reverse() }
     });
-    for (app_id, time) in stat {
-        println!("{app_id}: {}", human_duration(*time));
+    for (state, time) in stat {
+        if let State::Active {
+            app_id: _,
+            workspace: _,
+        } = state
+        {
+            println!("{state}: {}", human_duration(*time));
+        }
     }
 
     println!("-----");
