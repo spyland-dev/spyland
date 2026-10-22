@@ -124,11 +124,14 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                             backend_name,
                         } => {
                             use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
-                            let is_accepted = protocol_version <= protocol::VERSION;
+
                             let pid = match getsockopt(conn.stream(), PeerCredentials) {
                                 Ok(cred) => cred.pid().to_string(),
                                 Err(e) => e.desc().to_owned(),
                             };
+
+                            let is_accepted = protocol_version <= protocol::VERSION;
+
                             match is_accepted {
                                 true => {
                                     info!(
