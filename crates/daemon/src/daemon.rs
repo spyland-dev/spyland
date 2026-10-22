@@ -28,13 +28,13 @@ use anyhow::{Context, Result};
 use log::{debug, info, trace, warn};
 use tokio::time::interval;
 
-pub struct App<C: Clock> {
+pub struct Daemon<C: Clock> {
     session_manager: Arc<Mutex<SessionManager<C>>>,
     db: Db,
     server: IpcServer,
 }
 
-impl<C: Clock> App<C> {
+impl<C: Clock> Daemon<C> {
     pub async fn new(db: Db, server: IpcServer, config_path: PathBuf, clock: C) -> Result<Self> {
         let mut sm = SessionManager::new(clock);
         let config_file = ConfigFile::new(config_path)?;
@@ -51,7 +51,7 @@ impl<C: Clock> App<C> {
     }
 }
 
-impl<C: Clock + Send + 'static> App<C> {
+impl<C: Clock + Send + 'static> Daemon<C> {
     pub async fn run(self) -> Result<()> {
         let sm = self.session_manager.clone();
         let db = self.db;

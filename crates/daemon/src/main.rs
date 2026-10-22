@@ -13,11 +13,11 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::app::App;
+use crate::daemon::Daemon;
 use clap::Parser;
 use spyland_lib::{db::Db, ipc::IpcServer, path};
 
-mod app;
+mod daemon;
 
 #[derive(Parser)]
 #[command(
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
 
     info!("Starting spyland daemon...");
 
-    let app = App::new(
+    let daemon = Daemon::new(
         Db::open(
             match args.database {
                 None => path::ensure_database_path()?,
@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    app.run().await
+    daemon.run().await
 }
 
 struct SystemClock;
