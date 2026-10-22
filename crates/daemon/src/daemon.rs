@@ -124,31 +124,29 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                             backend_name,
                         } => {
                             use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
+                            use spyland_lib::ipc::protocol::ServerError;
 
                             let pid = match getsockopt(conn.stream(), PeerCredentials) {
                                 Ok(cred) => cred.pid().to_string(),
                                 Err(e) => e.desc().to_owned(),
                             };
 
-                            let is_accepted = protocol_version <= protocol::VERSION;
-
-                            match is_accepted {
+                            match protocol_version <= protocol::VERSION {
                                 true => {
                                     info!(
                                         "The '{backend_name}' ({pid}) backend is accepted! Protocol version: {protocol_version}"
-                                    )
+                                    );
+
+                                    IpcResponse::HandshakeSuccessful
                                 }
                                 false => {
                                     warn!(
                                         "The '{backend_name}' ({pid}) backend was rejected due to version incompatibility.",
                                     );
                                     debug!("{protocol_version} > {}", protocol::VERSION);
-                                }
-                            }
 
-                            IpcResponse::Handshake {
-                                protocol_version: protocol::VERSION,
-                                is_accepted,
+                                    IpcResponse::Error(ServerError::ClientIncompability)
+                                }
                             }
                         }
                         IpcRequest::Event(event) => IpcResponse::EventResponse(

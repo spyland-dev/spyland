@@ -11,7 +11,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use log::warn;
+use log::{info, warn};
 use niri_ipc::{Event as NiriEvent, Request as NiriRequest, Window, socket::Socket};
 use spyland_core::Event as CoreEvent;
 use spyland_lib::ipc::{
@@ -48,17 +48,19 @@ impl NiriBackend {
             })
             .context("Failed to handshake daemon")?;
 
-        if let IpcResponse::Handshake {
-            protocol_version: _,
-            is_accepted,
-        } = response
-        {
-            if !is_accepted {
-                anyhow::bail!("Server was reject the connection.");
+        match response {
+            IpcResponse::HandshakeSuccessful => {
+                info!("Server accepted the connection.");
             }
-        } else {
-            anyhow::bail!("Unexpected response from the server.");
-        }
+
+            IpcResponse::Error(error) => {
+                anyhow::bail!("Server returned an error. ({error:?})");
+            }
+
+            _ => {
+                anyhow::bail!("Unexpected response from the server.");
+            }
+        };
 
         let mut event_socket = self
             .socket_path

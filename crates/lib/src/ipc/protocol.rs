@@ -47,17 +47,21 @@ pub enum Response {
     /// A simple response that means connection is works.
     Pong,
 
-    /// A response from the daemon to the backend.
-    Handshake {
-        /// Server protocol version.
-        protocol_version: u32,
-        /// Determines if the server accepted your connection. If not,
-        /// then you and the server's protocol version are incompatible.
-        is_accepted: bool,
-    },
+    /// The server accepted the backend connection and successfully registered it.
+    HandshakeSuccessful,
 
     /// A [spyland_core::manager::SessionManager] response received as an answer to [Request::Event].
     EventResponse(spyland_core::manager::Response),
+
+    /// An error happend.
+    Error(ServerError),
+}
+
+/// The server returns an error if something is wrong with the client or with the server itself.
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub enum ServerError {
+    /// The client has a version that is incompatible with the server.
+    ClientIncompability,
 }
 
 /// Low-level function, used to send `serializable` to `stream`.
