@@ -62,6 +62,10 @@ pub enum Response {
 pub enum ServerError {
     /// The client has a version that is incompatible with the server.
     ClientIncompability,
+    /// An attempt to perform a [handshake](Request::Handshake) again.
+    RePerformHandshake,
+    /// The client has not performed the [handshake](Request::Handshake) required to send such [Request]s.
+    UnregisteredClient,
 }
 
 /// Low-level function, used to send `serializable` to `stream`.

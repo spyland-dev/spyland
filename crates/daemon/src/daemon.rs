@@ -114,6 +114,10 @@ impl<C: Clock + Send + 'static> Daemon<C> {
     }
 
     fn connection_handler(conn: IpcConnection, session_manager: Arc<Mutex<SessionManager<C>>>) {
+        use spyland_lib::ipc::protocol::ServerError;
+
+        let registered: Option<bool> = None;
+
         loop {
             match conn.read() {
                 Ok(request) => {
@@ -124,34 +128,49 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                             backend_name,
                         } => {
                             use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
-                            use spyland_lib::ipc::protocol::ServerError;
 
                             let pid = match getsockopt(conn.stream(), PeerCredentials) {
                                 Ok(cred) => cred.pid().to_string(),
                                 Err(e) => e.desc().to_owned(),
                             };
 
-                            match protocol_version <= protocol::VERSION {
-                                true => {
-                                    info!(
-                                        "The '{backend_name}' ({pid}) backend is accepted! Protocol version: {protocol_version}"
-                                    );
+                            match registered {
+                                None => match protocol_version <= protocol::VERSION {
+                                    true => {
+                                        info!(
+                                            "The '{backend_name}' ({pid}) backend is accepted! Protocol version: {protocol_version}"
+                                        );
 
-                                    IpcResponse::HandshakeSuccessful
-                                }
-                                false => {
+                                        IpcResponse::HandshakeSuccessful
+                                    }
+                                    false => {
+                                        warn!(
+                                            "The '{backend_name}' ({pid}) backend was rejected due to version incompatibility.",
+                                        );
+                                        debug!("{protocol_version} > {}", protocol::VERSION);
+
+                                        IpcResponse::Error(ServerError::ClientIncompability)
+                                    }
+                                },
+                                Some(_) => {
                                     warn!(
-                                        "The '{backend_name}' ({pid}) backend was rejected due to version incompatibility.",
+                                        "Attempt to reperform handshake by '{backend_name}' ({pid})"
                                     );
-                                    debug!("{protocol_version} > {}", protocol::VERSION);
-
-                                    IpcResponse::Error(ServerError::ClientIncompability)
+                                    IpcResponse::Error(ServerError::RePerformHandshake)
                                 }
                             }
                         }
-                        IpcRequest::Event(event) => IpcResponse::EventResponse(
-                            session_manager.lock().unwrap().handle_event(event),
-                        ),
+                        IpcRequest::Event(event) => {
+                            // Ignore registration for debug builds to possible conditions when
+                            // accessing the daemon IPC directly for debugging.
+                            if cfg!(debug_assertions) || registered.is_some_and(|r| r /* == true */) {
+                                IpcResponse::EventResponse(
+                                    session_manager.lock().unwrap().handle_event(event),
+                                )
+                            } else {
+                                IpcResponse::Error(ServerError::UnregisteredClient)
+                            }
+                        }
                     };
 
                     conn.send(response).expect("Failed to send response");
