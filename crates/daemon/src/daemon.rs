@@ -163,7 +163,9 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                         IpcRequest::Event(event) => {
                             // Ignore registration for debug builds to possible conditions when
                             // accessing the daemon IPC directly for debugging.
-                            if cfg!(debug_assertions) || registered.is_some_and(|r| r /* == true */) {
+                            if cfg!(debug_assertions)
+                                || registered.is_some_and(|r| r /* == true */)
+                            {
                                 IpcResponse::EventResponse(
                                     session_manager.lock().unwrap().handle_event(event),
                                 )
@@ -178,7 +180,10 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                 Err(err) => {
                     warn!("Read failed: '{err:#}'. Connection will be shutdown.");
                     if registered.is_some_and(|r| r /* == true */) {
-                        session_manager.lock().unwrap().handle_event(Event::Idle(true));
+                        session_manager
+                            .lock()
+                            .unwrap()
+                            .handle_event(Event::Idle(true));
                     }
                     break;
                 }
