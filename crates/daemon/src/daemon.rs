@@ -177,6 +177,9 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                 }
                 Err(err) => {
                     warn!("Read failed: '{err:#}'. Connection will be shutdown.");
+                    if registered.is_some_and(|r| r /* == true */) {
+                        session_manager.lock().unwrap().handle_event(Event::Idle(true));
+                    }
                     break;
                 }
             }
