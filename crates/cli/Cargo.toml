@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 clap = { version = "4.6.1", features = ["derive"] }
+iocraft = "0.9.3"
 serde = "1.0.228"
 spyland-core = { version = "0.1.0", path = "../core" }
 spyland-lib = { version = "0.1.0", path = "../lib" }

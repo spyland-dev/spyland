@@ -50,6 +50,7 @@ enum Command {
 }
 
 use anyhow::Result;
+use iocraft::prelude::*;
 use spyland_core::{State, analytics::SessionAnalytics};
 use spyland_lib::config::ConfigFile;
 use time::{OffsetDateTime, UtcOffset, format_description};
@@ -141,13 +142,13 @@ async fn time(
     let analytic = SessionAnalytics::new(sessions);
 
     let time = analytic.time_for_each_app();
-    let mut stat: Vec<(&State, &i64)> = time.iter().collect();
+    let mut stat: Vec<(State, i64)> = time.into_iter().collect();
 
     stat.sort_by(|x, y| {
         let cmp = if by_time {
-            x.1.cmp(y.1)
+            x.1.cmp(&y.1)
         } else {
-            match (x.0, y.0) {
+            match (&x.0, &y.0) {
                 (
                     State::Active {
                         app_id: x,
@@ -165,32 +166,55 @@ async fn time(
         };
         if ascending { cmp } else { cmp.reverse() }
     });
-    for (state, time) in stat {
-        if let State::Active {
-            app_id: _,
-            workspace: _,
-        } = state
-        {
-            for group in &groups {
-                if group.session_group.matches(state) {
-                    if let Some((r, g, b)) = group.color.as_deref().and_then(parse_hex_color) {
-                        print!("\x1b[38;2;{r};{g};{b}m[{}]\x1b[0m ", group.name);
-                    } else {
-                        print!("[{}] ", group.name);
-                    }
-                }
+
+    element! {
+        View(flex_direction: FlexDirection::Column) {
+            View(
+                flex_direction: FlexDirection::Column,
+                border_style: BorderStyle::Round,
+                border_edges: Some(Edges::Bottom)
+            ) {
+                #(
+                    stat.iter().map(|(state, time)| {
+                        let mut group: Option<Group> = None;
+
+                        for grp in &groups {
+                            if grp.session_group.matches(state) {
+                                group = Some(grp.clone());
+                                break;
+                            }
+                        }
+
+                        element!(
+                            View {
+                                #(
+                                    match group {
+                                        Some(g) => {
+                                            Some(
+                                                element! {
+                                                    Text(
+                                                        content: format!("[{}] ", &g.name),
+                                                        color: g.color
+                                                            .as_deref()
+                                                            .and_then(parse_hex_color)
+                                                            .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 })
+                                                    )
+                                                }
+                                            )
+                                        }
+                                        None => None,
+                                    }
+                                )
+                                Text(content: format!("{}: {}", state, human_duration(*time)))
+                            }
+                        )
+                    })
+                )
             }
-
-            println!("{state}: {}", human_duration(*time));
+            Text(content: format!("Total screen time: {}", human_duration(analytic.total_screen_time())))
+            Text(content: format!("Idle time: {}", human_duration(analytic.idle_time())))
         }
-    }
-
-    println!("-----");
-    println!(
-        "Total screen time: {}",
-        human_duration(analytic.total_screen_time())
-    );
-    println!("Idle time: {}", human_duration(analytic.idle_time()));
+    }.print();
 
     Ok(())
 }
