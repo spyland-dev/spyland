@@ -225,6 +225,10 @@ impl SessionAnalytics {
         let mut hash_map = HashMap::new();
 
         for s in &self.sessions {
+            if let State::Idle = s.state {
+                continue;
+            }
+
             let duration = s.end - s.start;
 
             hash_map
