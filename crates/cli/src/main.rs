@@ -199,6 +199,9 @@ async fn time(
         if ascending { cmp } else { cmp.reverse() }
     });
 
+    let tst = analytic.total_screen_time();
+    let idt = analytic.idle_time();
+
     element! {
         View(flex_direction: FlexDirection::Column) {
             View(
@@ -229,7 +232,8 @@ async fn time(
                                                         color: g.color
                                                             .as_deref()
                                                             .and_then(parse_hex_color)
-                                                            .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 })
+                                                            .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
+                                                        italic: true,
                                                     )
                                                 }
                                             )
@@ -237,14 +241,30 @@ async fn time(
                                         None => None,
                                     }
                                 )
-                                Text(content: format!("{}: {}", state, human_duration(*time)))
+                                #(
+                                    if let State::Active { app_id, workspace: _ } = state {
+                                        Some(
+                                            element! {
+                                                Text(content: app_id, color: Some(Color::DarkCyan), weight: Weight::Bold)
+                                            }
+                                        )
+                                    } else { None }
+                                )
+                                Text(content: ": ")
+                                Text(content: human_duration(*time), color: Some(duration_color(*time, 60*60)))
                             }
                         )
                     })
                 )
             }
-            Text(content: format!("Total screen time: {}", human_duration(analytic.total_screen_time())))
-            Text(content: format!("Idle time: {}", human_duration(analytic.idle_time())))
+            View {
+                Text(content: "Total screen time: ", weight: Weight::Bold)
+                Text(content: human_duration(tst), color: Some(duration_color(tst, 3 * 60 * 60)))
+            }
+            View {
+                Text(content: "Idle time: ", color: Some(Color::DarkGrey), weight: Weight::Bold)
+                Text(content: human_duration(idt), color: Some(duration_color(idt, 4 * 60 * 60)))
+            }
         }
     }.print();
 
