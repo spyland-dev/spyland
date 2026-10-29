@@ -12,16 +12,14 @@ use spyland_lib::db::{Db, QueryFilter};
 use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
-pub fn duration_color(seconds: i64) -> Color {
-    const SENSITIVITY: i64 = 30 * 60;
-
-    let seconds = seconds.clamp(0, SENSITIVITY * 2);
-    let (r, g) = if seconds <= SENSITIVITY {
-        ((seconds * 255 / SENSITIVITY) as u8, 255)
+pub fn duration_color(seconds: i64, sensitivity: i64) -> Color {
+    let seconds = seconds.clamp(0, sensitivity * 2);
+    let (r, g) = if seconds <= sensitivity {
+        ((seconds * 255 / sensitivity) as u8, 255)
     } else {
         (
             255,
-            (255 - (seconds - SENSITIVITY) * 255 / SENSITIVITY) as u8,
+            (255 - (seconds - sensitivity) * 255 / sensitivity) as u8,
         )
     };
 

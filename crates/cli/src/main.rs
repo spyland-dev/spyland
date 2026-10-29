@@ -149,7 +149,7 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                                     }
                                 )
                                 Text(content: ": ")
-                                Text(content: human_duration(duration), color: Some(duration_color(duration)))
+                                Text(content: human_duration(duration), color: Some(duration_color(duration, 30*60)))
                             }
                         }
                     })
