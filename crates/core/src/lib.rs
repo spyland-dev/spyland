@@ -41,7 +41,7 @@ pub struct Session {
 ///
 /// Represents what the user is currently doing or their activity status.
 /// Used within [Session] to describe the context of screen time.
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Default)]
 pub enum State {
     /// Active state: user is focused on an application window.
     ///
@@ -59,6 +59,7 @@ pub enum State {
     ///
     /// This typically occurs when the screensaver activates or a window loses focus
     /// without another window gaining it.
+    #[default]
     Idle,
 }
 

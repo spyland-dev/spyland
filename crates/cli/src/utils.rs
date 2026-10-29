@@ -6,10 +6,63 @@
  */
 
 use anyhow::Result;
+use iocraft::prelude::Color;
 use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
 use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
+
+pub fn duration_color(seconds: i64) -> Color {
+    const SENSITIVITY: i64 = 30 * 60;
+
+    let seconds = seconds.clamp(0, SENSITIVITY * 2);
+    let (r, g) = if seconds <= SENSITIVITY {
+        ((seconds * 255 / SENSITIVITY) as u8, 255)
+    } else {
+        (
+            255,
+            (255 - (seconds - SENSITIVITY) * 255 / SENSITIVITY) as u8,
+        )
+    };
+
+    Color::Rgb { r, g, b: 0 }
+}
+
+pub fn time_color(time: OffsetDateTime) -> Color {
+    const KEYFRAMES: [(u16, (u8, u8, u8)); 7] = [
+        (0, (78, 101, 151)),
+        (7 * 60, (222, 202, 141)),
+        (12 * 60, (232, 231, 160)),
+        (15 * 60, (224, 185, 73)),
+        (18 * 60, (242, 124, 75)),
+        (20 * 60, (91, 111, 164)),
+        (24 * 60, (78, 101, 151)),
+    ];
+
+    let minute = u16::from(time.hour()) * 60 + u16::from(time.minute());
+    let interval = KEYFRAMES
+        .windows(2)
+        .find(|pair| minute >= pair[0].0 && minute <= pair[1].0)
+        .unwrap();
+
+    let (start_minute, (start_r, start_g, start_b)) = interval[0];
+    let (end_minute, (end_r, end_g, end_b)) = interval[1];
+
+    let elapsed = i32::from(minute - start_minute);
+    let duration = i32::from(end_minute - start_minute);
+
+    let interpolate = |start: u8, end: u8| {
+        let start = i32::from(start);
+        let difference = i32::from(end) - start;
+        (start + difference * elapsed / duration) as u8
+    };
+
+    Color::Rgb {
+        r: interpolate(start_r, end_r),
+        g: interpolate(start_g, end_g),
+        b: interpolate(start_b, end_b),
+    }
+}
 
 pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
     let s = s.trim();

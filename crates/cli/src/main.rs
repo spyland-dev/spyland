@@ -50,6 +50,7 @@ enum Command {
 }
 
 use anyhow::Result;
+use iocraft::prelude::*;
 use spyland_core::{State, analytics::SessionAnalytics};
 use spyland_lib::config::ConfigFile;
 use time::{OffsetDateTime, UtcOffset, format_description};
@@ -87,44 +88,76 @@ async fn main() -> Result<()> {
 async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) -> Result<()> {
     let sessions = load_sessions(from, to, limit).await?;
 
-    let offset = UtcOffset::current_local_offset()?;
-    let date_format =
-        format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
-    let time_format = format_description::parse("[hour]:[minute]")?;
+    element! {
+        View(
+            flex_direction: FlexDirection::Column,
+            gap: Gap::Length(2),
 
-    let mut old_datetime: Option<OffsetDateTime> = None;
+            border_style: BorderStyle::Round,
+            border_edges: Some(Edges::Left),
+            border_color: Some(Color::Blue),
+        ) {
+            #(
+                sessions.iter().scan(None::<i64>, |previous, session| {
+                    let duration = session.end - session.start;
 
-    for session in sessions {
-        println!("|\n|");
+                    let offset = UtcOffset::current_local_offset().unwrap();
+                    let date_format = format_description::parse("[weekday repr:short], [day] [month repr:long] [year]").unwrap();
+                    let time_format = format_description::parse("[hour]:[minute]").unwrap();
 
-        let datetime = OffsetDateTime::from_unix_timestamp(session.start)?.to_offset(offset);
+                    let cdt = OffsetDateTime::from_unix_timestamp(session.start).unwrap().to_offset(offset);
+                    let pdt = (*previous).map(|start| OffsetDateTime::from_unix_timestamp(start).unwrap().to_offset(offset));
 
-        if old_datetime.is_none_or(|old| datetime.date() != old.date()) {
-            println!("#    {}", datetime.format(&date_format)?);
-            println!("|\n|");
+                    *previous = Some(session.start);
+
+                    Some(element! {
+                        View(flex_direction: FlexDirection::Column) {
+                            #(
+                                if pdt.is_none_or(|p| cdt.date() != p.date()) {
+                                    Some(
+                                        element! {
+                                            View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
+                                                Text(
+                                                    content: cdt.format(&date_format).unwrap(),
+                                                    color: Some(Color::Cyan),
+                                                    weight: Weight::Bold,
+                                                )
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    None
+                                }
+                            )
+                            View {
+                                View(
+                                    border_style: BorderStyle::Round,
+                                    border_edges: Some(Edges::Top),
+                                    border_color: Some(Color::Blue),
+                                    margin_right: Margin::Length(1),
+                                    width: 3
+                                )
+                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: Some(time_color(cdt)))
+                                #(
+                                    match &session.state {
+                                        State::Active { app_id, workspace: _ } => element! {
+                                            Text(content: app_id, weight: Weight::Bold, color: Some(Color::DarkCyan))
+                                        },
+                                        State::Idle => element! {
+                                            Text(content: "Idle", color: Color::DarkGrey, weight: Weight::Bold)
+                                        }
+                                    }
+                                )
+                                Text(content: ": ")
+                                Text(content: human_duration(duration), color: Some(duration_color(duration)))
+                            }
+                        }
+                    })
+                })
+            )
         }
-
-        print!(
-            "@--- ({}) {}: ",
-            datetime.format(&time_format)?,
-            human_duration(session.end - session.start)
-        );
-
-        match &session.state {
-            State::Active { app_id, workspace } => {
-                print!("{app_id}");
-                if let Some(w) = workspace {
-                    print!(", {w}");
-                }
-                println!();
-            }
-            State::Idle => {
-                println!("Idle");
-            }
-        }
-
-        old_datetime = Some(datetime);
     }
+    .print();
 
     Ok(())
 }
@@ -141,13 +174,13 @@ async fn time(
     let analytic = SessionAnalytics::new(sessions);
 
     let time = analytic.time_for_each_app();
-    let mut stat: Vec<(&State, &i64)> = time.iter().collect();
+    let mut stat: Vec<(State, i64)> = time.into_iter().collect();
 
     stat.sort_by(|x, y| {
         let cmp = if by_time {
-            x.1.cmp(y.1)
+            x.1.cmp(&y.1)
         } else {
-            match (x.0, y.0) {
+            match (&x.0, &y.0) {
                 (
                     State::Active {
                         app_id: x,
@@ -165,32 +198,55 @@ async fn time(
         };
         if ascending { cmp } else { cmp.reverse() }
     });
-    for (state, time) in stat {
-        if let State::Active {
-            app_id: _,
-            workspace: _,
-        } = state
-        {
-            for group in &groups {
-                if group.session_group.matches(state) {
-                    if let Some((r, g, b)) = group.color.as_deref().and_then(parse_hex_color) {
-                        print!("\x1b[38;2;{r};{g};{b}m[{}]\x1b[0m ", group.name);
-                    } else {
-                        print!("[{}] ", group.name);
-                    }
-                }
+
+    element! {
+        View(flex_direction: FlexDirection::Column) {
+            View(
+                flex_direction: FlexDirection::Column,
+                border_style: BorderStyle::Round,
+                border_edges: Some(Edges::Bottom)
+            ) {
+                #(
+                    stat.iter().map(|(state, time)| {
+                        let mut group: Option<Group> = None;
+
+                        for grp in &groups {
+                            if grp.session_group.matches(state) {
+                                group = Some(grp.clone());
+                                break;
+                            }
+                        }
+
+                        element!(
+                            View {
+                                #(
+                                    match group {
+                                        Some(g) => {
+                                            Some(
+                                                element! {
+                                                    Text(
+                                                        content: format!("[{}] ", &g.name),
+                                                        color: g.color
+                                                            .as_deref()
+                                                            .and_then(parse_hex_color)
+                                                            .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 })
+                                                    )
+                                                }
+                                            )
+                                        }
+                                        None => None,
+                                    }
+                                )
+                                Text(content: format!("{}: {}", state, human_duration(*time)))
+                            }
+                        )
+                    })
+                )
             }
-
-            println!("{state}: {}", human_duration(*time));
+            Text(content: format!("Total screen time: {}", human_duration(analytic.total_screen_time())))
+            Text(content: format!("Idle time: {}", human_duration(analytic.idle_time())))
         }
-    }
-
-    println!("-----");
-    println!(
-        "Total screen time: {}",
-        human_duration(analytic.total_screen_time())
-    );
-    println!("Idle time: {}", human_duration(analytic.idle_time()));
+    }.print();
 
     Ok(())
 }
