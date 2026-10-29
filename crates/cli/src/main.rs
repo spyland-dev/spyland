@@ -88,44 +88,62 @@ async fn main() -> Result<()> {
 async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) -> Result<()> {
     let sessions = load_sessions(from, to, limit).await?;
 
-    let offset = UtcOffset::current_local_offset()?;
-    let date_format =
-        format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
-    let time_format = format_description::parse("[hour]:[minute]")?;
+    element! {
+        View(
+            flex_direction: FlexDirection::Column,
+            gap: Gap::Length(2),
 
-    let mut old_datetime: Option<OffsetDateTime> = None;
+            border_style: BorderStyle::Round,
+            border_edges: Some(Edges::Left),
+            border_color: Some(Color::Blue),
+        ) {
+            #(
+                sessions.iter().scan(None::<i64>, |previous, session| {
+                    let duration = session.end - session.start;
 
-    for session in sessions {
-        println!("|\n|");
+                    let offset = UtcOffset::current_local_offset().unwrap();
+                    let date_format = format_description::parse("[weekday repr:short], [day] [month repr:long] [year]").unwrap();
+                    let time_format = format_description::parse("[hour]:[minute]").unwrap();
 
-        let datetime = OffsetDateTime::from_unix_timestamp(session.start)?.to_offset(offset);
+                    let cdt = OffsetDateTime::from_unix_timestamp(session.start).unwrap().to_offset(offset);
+                    let pdt = (*previous).map(|start| OffsetDateTime::from_unix_timestamp(start).unwrap().to_offset(offset));
 
-        if old_datetime.is_none_or(|old| datetime.date() != old.date()) {
-            println!("#    {}", datetime.format(&date_format)?);
-            println!("|\n|");
+                    *previous = Some(session.start);
+
+                    Some(element! {
+                        View(flex_direction: FlexDirection::Column) {
+                            #(
+                                if pdt.is_none_or(|p| cdt.date() != p.date()) {
+                                    Some(
+                                        element! {
+                                            View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
+                                                Text(content: cdt.format(&date_format).unwrap(), color: Some(Color::Cyan))
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    None
+                                }
+                            )
+                            View {
+                                View(
+                                    border_style: BorderStyle::Round,
+                                    border_edges: Some(Edges::Top),
+                                    border_color: Some(Color::Blue),
+                                    margin_right: Margin::Length(1),
+                                    width: 3
+                                )
+                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()))
+                                Text(content: human_duration(duration))
+                                Text(content: format!(": {}", session.state))
+                            }
+                        }
+                    })
+                })
+            )
         }
-
-        print!(
-            "@--- ({}) {}: ",
-            datetime.format(&time_format)?,
-            human_duration(session.end - session.start)
-        );
-
-        match &session.state {
-            State::Active { app_id, workspace } => {
-                print!("{app_id}");
-                if let Some(w) = workspace {
-                    print!(", {w}");
-                }
-                println!();
-            }
-            State::Idle => {
-                println!("Idle");
-            }
-        }
-
-        old_datetime = Some(datetime);
     }
+    .print();
 
     Ok(())
 }
