@@ -117,7 +117,11 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                                     Some(
                                         element! {
                                             View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
-                                                Text(content: cdt.format(&date_format).unwrap(), color: Some(Color::Cyan))
+                                                Text(
+                                                    content: cdt.format(&date_format).unwrap(),
+                                                    color: Some(Color::Cyan),
+                                                    weight: Weight::Bold,
+                                                )
                                             }
                                         }
                                     )
@@ -134,8 +138,18 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                                     width: 3
                                 )
                                 Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: Some(time_color(cdt)))
+                                #(
+                                    match &session.state {
+                                        State::Active { app_id, workspace: _ } => element! {
+                                            Text(content: app_id, weight: Weight::Bold, color: Some(Color::DarkCyan))
+                                        },
+                                        State::Idle => element! {
+                                            Text(content: "Idle", color: Color::DarkGrey, weight: Weight::Bold)
+                                        }
+                                    }
+                                )
+                                Text(content: ": ")
                                 Text(content: human_duration(duration), color: Some(duration_color(duration)))
-                                Text(content: format!(": {}", session.state))
                             }
                         }
                     })
