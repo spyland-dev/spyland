@@ -839,6 +839,7 @@ dependencies = [
  "generational-box",
  "iocraft-macros",
  "regex",
+ "serde",
  "taffy",
  "unicode-width",
 ]

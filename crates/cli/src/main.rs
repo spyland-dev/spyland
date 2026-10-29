@@ -58,7 +58,7 @@ use time::{OffsetDateTime, UtcOffset, format_description};
 mod config;
 mod utils;
 use crate::{
-    config::{Config, Group},
+    config::{Config, Group, Theme},
     utils::*,
 };
 
@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
     let config: Config = config_file.get_section()?;
 
     match args.command {
-        Command::Sessions { limit } => sessions(args.from, args.to, limit).await,
+        Command::Sessions { limit } => sessions(args.from, args.to, limit, config.theme).await,
         Command::Time { ascending, by_time } => {
             time(
                 ascending.unwrap_or(config.sort_ascending),
@@ -79,13 +79,19 @@ async fn main() -> Result<()> {
                 args.from,
                 args.to,
                 config.groups,
+                config.theme,
             )
             .await
         }
     }
 }
 
-async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) -> Result<()> {
+async fn sessions(
+    from: Option<String>,
+    to: Option<String>,
+    limit: Option<i64>,
+    theme: Theme,
+) -> Result<()> {
     let sessions = load_sessions(from, to, limit).await?;
 
     element! {
@@ -94,8 +100,8 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
             gap: Gap::Length(2),
 
             border_style: BorderStyle::Round,
-            border_edges: Some(Edges::Left),
-            border_color: Some(Color::Blue),
+            border_edges: Edges::Left,
+            border_color: theme.timeline_color,
         ) {
             #(
                 sessions.iter().scan(None::<i64>, |previous, session| {
@@ -119,7 +125,7 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                                             View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
                                                 Text(
                                                     content: cdt.format(&date_format).unwrap(),
-                                                    color: Some(Color::Cyan),
+                                                    color: Some(theme.timeline_date_color),
                                                     weight: Weight::Bold,
                                                 )
                                             }
@@ -132,24 +138,27 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                             View {
                                 View(
                                     border_style: BorderStyle::Round,
-                                    border_edges: Some(Edges::Top),
-                                    border_color: Some(Color::Blue),
+                                    border_edges: Edges::Top,
+                                    border_color: theme.timeline_color,
                                     margin_right: Margin::Length(1),
                                     width: 3
                                 )
-                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: Some(time_color(cdt)))
+                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: time_color(cdt))
                                 #(
                                     match &session.state {
                                         State::Active { app_id, workspace: _ } => element! {
-                                            Text(content: app_id, weight: Weight::Bold, color: Some(Color::DarkCyan))
+                                            Text(content: app_id, weight: Weight::Bold, color: theme.app_name_color)
                                         },
                                         State::Idle => element! {
-                                            Text(content: "Idle", color: Color::DarkGrey, weight: Weight::Bold)
+                                            Text(content: "Idle", color: theme.idle_session_color, weight: Weight::Bold)
                                         }
                                     }
                                 )
                                 Text(content: ": ")
-                                Text(content: human_duration(duration), color: Some(duration_color(duration, 30*60)))
+                                Text(
+                                    content: human_duration(duration),
+                                    color: duration_color(duration, theme.timeline_session_duration_sensitivity * 60)
+                                )
                             }
                         }
                     })
@@ -168,6 +177,7 @@ async fn time(
     from: Option<String>,
     to: Option<String>,
     groups: Vec<Group>,
+    theme: Theme,
 ) -> Result<()> {
     let sessions = load_sessions(from, to, None).await?;
 
@@ -207,7 +217,7 @@ async fn time(
             View(
                 flex_direction: FlexDirection::Column,
                 border_style: BorderStyle::Round,
-                border_edges: Some(Edges::Bottom)
+                border_edges: Edges::Bottom
             ) {
                 #(
                     stat.iter().map(|(state, time)| {
@@ -245,13 +255,13 @@ async fn time(
                                     if let State::Active { app_id, workspace: _ } = state {
                                         Some(
                                             element! {
-                                                Text(content: app_id, color: Some(Color::DarkCyan), weight: Weight::Bold)
+                                                Text(content: app_id, color: theme.app_name_color, weight: Weight::Bold)
                                             }
                                         )
                                     } else { None }
                                 )
                                 Text(content: ": ")
-                                Text(content: human_duration(*time), color: Some(duration_color(*time, 60*60)))
+                                Text(content: human_duration(*time), color: duration_color(*time, theme.timestats_app_time_sensitivity * 60))
                             }
                         )
                     })
@@ -259,11 +269,11 @@ async fn time(
             }
             View {
                 Text(content: "Total screen time: ", weight: Weight::Bold)
-                Text(content: human_duration(tst), color: Some(duration_color(tst, 3 * 60 * 60)))
+                Text(content: human_duration(tst), color: duration_color(tst, theme.timestats_total_time_sensitivity * 60))
             }
             View {
-                Text(content: "Idle time: ", color: Some(Color::DarkGrey), weight: Weight::Bold)
-                Text(content: human_duration(idt), color: Some(duration_color(idt, 4 * 60 * 60)))
+                Text(content: "Idle time: ", color: Color::DarkGrey, weight: Weight::Bold)
+                Text(content: human_duration(idt), color: duration_color(idt, theme.timestats_idle_time_sensitivity * 60))
             }
         }
     }.print();

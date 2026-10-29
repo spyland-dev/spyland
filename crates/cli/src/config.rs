@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use iocraft::Color;
 use serde::{Deserialize, Serialize};
 use spyland_core::analytics::SessionGroup;
 use spyland_lib::config::ConfigSection;
@@ -25,6 +26,7 @@ pub struct Config {
     pub sort_ascending: bool,
     pub sort_by_time: bool,
 
+    pub theme: Theme,
     pub groups: Vec<Group>,
 }
 
@@ -32,11 +34,41 @@ impl ConfigSection for Config {
     const SECTION: &'static str = "frontend.cli";
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+pub struct Theme {
+    pub timeline_color: Color,
+    pub timeline_date_color: Color,
+
+    pub app_name_color: Color,
+    pub idle_session_color: Color,
+
+    pub timeline_session_duration_sensitivity: i64,
+    pub timestats_app_time_sensitivity: i64,
+    pub timestats_total_time_sensitivity: i64,
+    pub timestats_idle_time_sensitivity: i64,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self {
+            timeline_color: Color::Blue,
+            timeline_date_color: Color::Cyan,
+            app_name_color: Color::DarkCyan,
+            idle_session_color: Color::DarkGrey,
+            timeline_session_duration_sensitivity: 30,
+            timestats_app_time_sensitivity: 60,
+            timestats_total_time_sensitivity: 3 * 60,
+            timestats_idle_time_sensitivity: 4 * 60,
+        }
+    }
+}
 impl Default for Config {
     fn default() -> Self {
         Self {
             sort_ascending: true,
             sort_by_time: true,
+            theme: Theme::default(),
             groups: Vec::new(),
         }
     }
