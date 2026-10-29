@@ -133,8 +133,8 @@ async fn sessions(from: Option<String>, to: Option<String>, limit: Option<i64>) 
                                     margin_right: Margin::Length(1),
                                     width: 3
                                 )
-                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()))
-                                Text(content: human_duration(duration))
+                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: Some(time_color(cdt)))
+                                Text(content: human_duration(duration), color: Some(duration_color(duration)))
                                 Text(content: format!(": {}", session.state))
                             }
                         }
