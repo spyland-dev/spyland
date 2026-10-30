@@ -94,6 +94,11 @@ async fn sessions(
 ) -> Result<()> {
     let sessions = load_sessions(from, to, limit).await?;
 
+    let offset = UtcOffset::current_local_offset()?;
+    let date_format =
+        format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
+    let time_format = format_description::parse("[hour]:[minute]")?;
+
     element! {
         View(
             flex_direction: FlexDirection::Column,
@@ -106,10 +111,6 @@ async fn sessions(
             #(
                 sessions.iter().scan(None::<i64>, |previous, session| {
                     let duration = session.end - session.start;
-
-                    let offset = UtcOffset::current_local_offset().unwrap();
-                    let date_format = format_description::parse("[weekday repr:short], [day] [month repr:long] [year]").unwrap();
-                    let time_format = format_description::parse("[hour]:[minute]").unwrap();
 
                     let cdt = OffsetDateTime::from_unix_timestamp(session.start).unwrap().to_offset(offset);
                     let pdt = (*previous).map(|start| OffsetDateTime::from_unix_timestamp(start).unwrap().to_offset(offset));
