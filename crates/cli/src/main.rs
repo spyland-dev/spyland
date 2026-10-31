@@ -137,8 +137,13 @@ fn sessions(sessions: Vec<spyland_core::Session>, theme: Theme) -> Result<()> {
                 sessions.iter().scan(None::<i64>, |previous, session| {
                     let duration = session.end - session.start;
 
-                    let cdt = OffsetDateTime::from_unix_timestamp(session.start).unwrap().to_offset(offset);
-                    let pdt = (*previous).map(|start| OffsetDateTime::from_unix_timestamp(start).unwrap().to_offset(offset));
+                    let cdt = OffsetDateTime::from_unix_timestamp(session.start)
+                        .unwrap()
+                        .to_offset(offset);
+                    let pdt = (*previous)
+                        .map(|start| OffsetDateTime::from_unix_timestamp(start)
+                        .unwrap()
+                        .to_offset(offset));
 
                     *previous = Some(session.start);
 
@@ -148,7 +153,10 @@ fn sessions(sessions: Vec<spyland_core::Session>, theme: Theme) -> Result<()> {
                                 if pdt.is_none_or(|p| cdt.date() != p.date()) {
                                     Some(
                                         element! {
-                                            View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
+                                            View(
+                                                padding_left: Padding::Length(4),
+                                                padding_bottom: Padding::Length(2)
+                                            ) {
                                                 Text(
                                                     content: cdt.format(&date_format).unwrap(),
                                                     color: Some(theme.date_color),
@@ -169,14 +177,22 @@ fn sessions(sessions: Vec<spyland_core::Session>, theme: Theme) -> Result<()> {
                                     margin_right: Margin::Length(1),
                                     width: 3
                                 )
-                                Text(content: format!("({}) ", cdt.format(&time_format).unwrap()), color: time_color(cdt))
+                                Text(
+                                    content: format!("({}) ",
+                                    cdt.format(&time_format).unwrap()),
+                                    color: time_color(cdt)
+                                )
                                 #(
                                     match &session.state {
                                         State::Active { app_id, workspace: _ } => element! {
                                             Text(content: app_id, weight: Weight::Bold, color: theme.app_name_color)
                                         },
                                         State::Idle => element! {
-                                            Text(content: "Idle", color: theme.idle_session_color, weight: Weight::Bold)
+                                            Text(
+                                                content: "Idle",
+                                                color: theme.idle_session_color,
+                                                weight: Weight::Bold
+                                            )
                                         }
                                     }
                                 )
@@ -249,11 +265,15 @@ async fn time(
             View {
                 MixedText(contents: vec![
                     MixedTextContent::new("From "),
-                    MixedTextContent::new(fdt.format(&format)?).color(theme.date_color).weight(Weight::Bold),
+                    MixedTextContent::new(fdt.format(&format)?)
+                        .color(theme.date_color)
+                        .weight(Weight::Bold),
                 ])
                 MixedText(contents: vec![
                     MixedTextContent::new(" to "),
-                    MixedTextContent::new(tdt.format(&format)?).color(theme.date_color).weight(Weight::Bold),
+                    MixedTextContent::new(tdt.format(&format)?)
+                        .color(theme.date_color)
+                        .weight(Weight::Bold),
                 ])
             }
             View(
@@ -276,20 +296,16 @@ async fn time(
                                 View(width: 12, padding_right: 1) {
                                     #(
                                         match group {
-                                            Some(g) => {
-                                                Some(
-                                                    element! {
-                                                        Text(
-                                                            content: g.name,
-                                                            color: g.color
-                                                                .as_deref()
-                                                                .and_then(parse_hex_color)
-                                                                .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
-                                                            italic: true,
-                                                        )
-                                                    }
+                                            Some(g) => Some(element! {
+                                                Text(
+                                                    content: g.name,
+                                                    color: g.color
+                                                        .as_deref()
+                                                        .and_then(parse_hex_color)
+                                                        .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
+                                                    italic: true,
                                                 )
-                                            }
+                                            }),
                                             None => None,
                                         }
                                     )
@@ -299,14 +315,21 @@ async fn time(
                                         if let State::Active { app_id, workspace: _ } = state {
                                             Some(
                                                 element! {
-                                                    Text(content: app_id, color: theme.app_name_color, weight: Weight::Bold)
+                                                    Text(
+                                                        content: app_id,
+                                                        color: theme.app_name_color,
+                                                        weight: Weight::Bold
+                                                    )
                                                 }
                                             )
                                         } else { None }
                                     )
                                 }
                                 View(width: 12) {
-                                    Text(content: human_duration(*time), color: duration_color(*time, theme.timestats_app_time_sensitivity * 60))
+                                    Text(
+                                        content: human_duration(*time),
+                                        color: duration_color(*time, theme.timestats_app_time_sensitivity * 60)
+                                    )
                                 }
                             }
                         )
@@ -315,11 +338,17 @@ async fn time(
             }
             View {
                 Text(content: "Total screen time: ", weight: Weight::Bold)
-                Text(content: human_duration(tst), color: duration_color(tst, theme.timestats_total_time_sensitivity * 60))
+                Text(
+                    content: human_duration(tst),
+                    color: duration_color(tst, theme.timestats_total_time_sensitivity * 60)
+                )
             }
             View {
                 Text(content: "Idle time: ", color: Color::DarkGrey, weight: Weight::Bold)
-                Text(content: human_duration(idt), color: duration_color(idt, theme.timestats_idle_time_sensitivity * 60))
+                Text(
+                    content: human_duration(idt),
+                    color: duration_color(idt, theme.timestats_idle_time_sensitivity * 60)
+                )
             }
         }
     }.print();
