@@ -43,10 +43,10 @@ pub struct Theme {
     pub app_name_color: Color,
     pub idle_session_color: Color,
 
-    pub timeline_session_duration_sensitivity: i64,
-    pub timestats_app_time_sensitivity: i64,
-    pub timestats_total_time_sensitivity: i64,
-    pub timestats_idle_time_sensitivity: i64,
+    pub timeline_session_duration_sensitivity: u64,
+    pub timestats_app_time_sensitivity: u64,
+    pub timestats_total_time_sensitivity: u64,
+    pub timestats_idle_time_sensitivity: u64,
 }
 
 impl Default for Theme {

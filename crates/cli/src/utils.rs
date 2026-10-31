@@ -11,7 +11,12 @@ use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
-pub fn duration_color(seconds: i64, sensitivity: i64) -> Color {
+pub fn duration_color(seconds: i64, sensitivity: u64) -> Color {
+    assert_ne!(sensitivity, 0, "`sensitivity` can not be zero.");
+    let seconds: u64 = seconds
+        .try_into()
+        .expect("`seconds` can not be less than zero.");
+
     let seconds = seconds.clamp(0, sensitivity * 2);
     let (r, g) = if seconds <= sensitivity {
         ((seconds * 255 / sensitivity) as u8, 255)
