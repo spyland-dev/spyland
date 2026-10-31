@@ -9,7 +9,6 @@ use anyhow::Result;
 use iocraft::prelude::Color;
 use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
-use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
 pub fn duration_color(seconds: i64, sensitivity: i64) -> Color {
@@ -124,29 +123,18 @@ pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
 }
 
 pub fn human_duration(seconds: i64) -> String {
-    if seconds == 0 {
-        return "0s".to_owned();
-    }
-
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
     let seconds = seconds % 60;
 
-    let mut str = String::new();
-
-    if hours > 0 {
-        let _ = write!(str, "{hours}h");
+    match (hours, minutes, seconds) {
+        (0, 0, 0) => "0s".to_owned(),
+        (0, 0, s) => format!("{s}s"),
+        (0, m, s) => format!("{m}m {s}s"),
+        (h, 0, 0) => format!("{h}h"),
+        (h, m, 0) => format!("{h}h {m}m"),
+        (h, m, s) => format!("{h}h {m}m {s}s"),
     }
-
-    if minutes > 0 {
-        let _ = write!(str, "{minutes}m");
-    }
-
-    if seconds > 0 {
-        let _ = write!(str, "{seconds}s");
-    }
-
-    str
 }
 
 pub fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
