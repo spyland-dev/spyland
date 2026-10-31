@@ -38,7 +38,7 @@ impl ConfigSection for Config {
 #[serde(default)]
 pub struct Theme {
     pub timeline_color: Color,
-    pub timeline_date_color: Color,
+    pub date_color: Color,
 
     pub app_name_color: Color,
     pub idle_session_color: Color,
@@ -53,7 +53,7 @@ impl Default for Theme {
     fn default() -> Self {
         Self {
             timeline_color: Color::Blue,
-            timeline_date_color: Color::Cyan,
+            date_color: Color::Cyan,
             app_name_color: Color::DarkCyan,
             idle_session_color: Color::DarkGrey,
             timeline_session_duration_sensitivity: 30,

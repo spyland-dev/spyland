@@ -151,7 +151,7 @@ fn sessions(sessions: Vec<spyland_core::Session>, theme: Theme) -> Result<()> {
                                             View(padding_left: Padding::Length(4), padding_bottom: Padding::Length(2)) {
                                                 Text(
                                                     content: cdt.format(&date_format).unwrap(),
-                                                    color: Some(theme.timeline_date_color),
+                                                    color: Some(theme.date_color),
                                                     weight: Weight::Bold,
                                                 )
                                             }
@@ -249,11 +249,11 @@ async fn time(
             View {
                 MixedText(contents: vec![
                     MixedTextContent::new("From "),
-                    MixedTextContent::new(fdt.format(&format)?).weight(Weight::Bold),
+                    MixedTextContent::new(fdt.format(&format)?).color(theme.date_color).weight(Weight::Bold),
                 ])
                 MixedText(contents: vec![
                     MixedTextContent::new(" to "),
-                    MixedTextContent::new(tdt.format(&format)?).weight(Weight::Bold),
+                    MixedTextContent::new(tdt.format(&format)?).color(theme.date_color).weight(Weight::Bold),
                 ])
             }
             View(
