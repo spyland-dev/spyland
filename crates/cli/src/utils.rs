@@ -161,28 +161,15 @@ pub fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
     }
 }
 
-pub async fn load_sessions(
-    from: Option<String>,
-    to: Option<String>,
-    limit: Option<i64>,
-) -> Result<Vec<Session>> {
+pub async fn load_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
-    let offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
     let sessions_sql = match (from, to, limit) {
-        (None, None, None) => db.query_all().await?,
+        (0, 0, None) => db.query_all().await?,
         (f, t, limit) => {
-            let from = match f {
-                Some(s) => Some(parse_flexible_time(s, offset)?),
-                None => None,
-            };
-            let to = match t {
-                Some(s) => Some(parse_flexible_time(s, offset)?),
-                None => None,
-            };
             db.query_filtered(QueryFilter {
-                from,
-                to,
+                from: Some(f),
+                to: Some(t),
                 limit,
                 ..Default::default()
             })

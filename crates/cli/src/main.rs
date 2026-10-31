@@ -53,7 +53,7 @@ use anyhow::Result;
 use iocraft::prelude::*;
 use spyland_core::{State, analytics::SessionAnalytics};
 use spyland_lib::config::ConfigFile;
-use time::{OffsetDateTime, UtcOffset, format_description};
+use time::{OffsetDateTime, Time, UtcOffset, format_description};
 
 mod config;
 mod utils;
@@ -70,14 +70,46 @@ async fn main() -> Result<()> {
 
     let config: Config = config_file.get_section()?;
 
+    let offset = UtcOffset::current_local_offset()?;
+
+    let resolve_range = |from: Option<String>,
+                         to: Option<String>,
+                         default_lookback_days: i64|
+     -> Result<(i64, i64)> {
+        let today = OffsetDateTime::now_utc().to_offset(offset).date();
+        let from = from
+            .map(|from| parse_flexible_time(from, offset))
+            .transpose()?
+            .unwrap_or_else(|| {
+                (today - time::Duration::days(default_lookback_days))
+                    .with_time(Time::MIDNIGHT)
+                    .assume_offset(offset)
+                    .unix_timestamp()
+            });
+        let to = to
+            .map(|to| parse_flexible_time(to, offset))
+            .transpose()?
+            .unwrap_or_else(|| {
+                today
+                    .with_time(Time::MIDNIGHT)
+                    .assume_offset(offset)
+                    .unix_timestamp()
+            });
+        Ok((from, to))
+    };
+
     match args.command {
-        Command::Sessions { limit } => sessions(args.from, args.to, limit, config.theme).await,
+        Command::Sessions { limit } => {
+            let (from, to) = resolve_range(args.from, args.to, 1)?;
+            sessions(load_sessions(from, to, limit).await?, config.theme)
+        }
         Command::Time { ascending, by_time } => {
+            let (from, to) = resolve_range(args.from, args.to, 7)?;
             time(
                 ascending.unwrap_or(config.sort_ascending),
                 by_time.unwrap_or(config.sort_by_time),
-                args.from,
-                args.to,
+                from,
+                to,
                 config.groups,
                 config.theme,
             )
@@ -86,14 +118,7 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn sessions(
-    from: Option<String>,
-    to: Option<String>,
-    limit: Option<i64>,
-    theme: Theme,
-) -> Result<()> {
-    let sessions = load_sessions(from, to, limit).await?;
-
+fn sessions(sessions: Vec<spyland_core::Session>, theme: Theme) -> Result<()> {
     let offset = UtcOffset::current_local_offset()?;
     let date_format =
         format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
@@ -175,8 +200,8 @@ async fn sessions(
 async fn time(
     ascending: bool,
     by_time: bool,
-    from: Option<String>,
-    to: Option<String>,
+    from: i64,
+    to: i64,
     groups: Vec<Group>,
     theme: Theme,
 ) -> Result<()> {
