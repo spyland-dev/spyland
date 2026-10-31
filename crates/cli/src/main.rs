@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
             .transpose()?
             .unwrap_or_else(|| {
                 today
-                    .with_time(Time::MIDNIGHT)
+                    .with_time(time::macros::time!(23:59:59))
                     .assume_offset(offset)
                     .unix_timestamp()
             });
