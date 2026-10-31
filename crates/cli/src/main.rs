@@ -238,8 +238,24 @@ async fn time(
     let tst = analytic.total_screen_time();
     let idt = analytic.idle_time();
 
+    let offset = UtcOffset::current_local_offset()?;
+    let format = format_description::parse("[day] [month repr:long] [year]")?;
+
+    let fdt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
+    let tdt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
+
     element! {
         View(flex_direction: FlexDirection::Column) {
+            View {
+                MixedText(contents: vec![
+                    MixedTextContent::new("From "),
+                    MixedTextContent::new(fdt.format(&format)?).weight(Weight::Bold),
+                ])
+                MixedText(contents: vec![
+                    MixedTextContent::new(" to "),
+                    MixedTextContent::new(tdt.format(&format)?).weight(Weight::Bold),
+                ])
+            }
             View(
                 flex_direction: FlexDirection::Column,
                 border_style: BorderStyle::Round,
