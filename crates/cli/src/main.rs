@@ -258,8 +258,7 @@ async fn time(
             }
             View(
                 flex_direction: FlexDirection::Column,
-                border_style: BorderStyle::Round,
-                border_edges: Edges::Bottom
+                padding: 1,
             ) {
                 #(
                     stat.iter().map(|(state, time)| {
@@ -274,36 +273,41 @@ async fn time(
 
                         element!(
                             View {
-                                #(
-                                    match group {
-                                        Some(g) => {
+                                View(width: 12, padding_right: 1) {
+                                    #(
+                                        match group {
+                                            Some(g) => {
+                                                Some(
+                                                    element! {
+                                                        Text(
+                                                            content: g.name,
+                                                            color: g.color
+                                                                .as_deref()
+                                                                .and_then(parse_hex_color)
+                                                                .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
+                                                            italic: true,
+                                                        )
+                                                    }
+                                                )
+                                            }
+                                            None => None,
+                                        }
+                                    )
+                                }
+                                View(width: 24, padding_right: 1) {
+                                    #(
+                                        if let State::Active { app_id, workspace: _ } = state {
                                             Some(
                                                 element! {
-                                                    Text(
-                                                        content: format!("[{}] ", &g.name),
-                                                        color: g.color
-                                                            .as_deref()
-                                                            .and_then(parse_hex_color)
-                                                            .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
-                                                        italic: true,
-                                                    )
+                                                    Text(content: app_id, color: theme.app_name_color, weight: Weight::Bold)
                                                 }
                                             )
-                                        }
-                                        None => None,
-                                    }
-                                )
-                                #(
-                                    if let State::Active { app_id, workspace: _ } = state {
-                                        Some(
-                                            element! {
-                                                Text(content: app_id, color: theme.app_name_color, weight: Weight::Bold)
-                                            }
-                                        )
-                                    } else { None }
-                                )
-                                Text(content: ": ")
-                                Text(content: human_duration(*time), color: duration_color(*time, theme.timestats_app_time_sensitivity * 60))
+                                        } else { None }
+                                    )
+                                }
+                                View(width: 12) {
+                                    Text(content: human_duration(*time), color: duration_color(*time, theme.timestats_app_time_sensitivity * 60))
+                                }
                             }
                         )
                     })
