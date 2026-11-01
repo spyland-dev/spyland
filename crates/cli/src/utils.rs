@@ -142,18 +142,6 @@ pub fn human_duration(seconds: i64) -> String {
     }
 }
 
-pub fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
-    let hex = s.trim().trim_start_matches('#');
-    if hex.len() == 6 {
-        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
-        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
-        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
-        Some((r, g, b))
-    } else {
-        None
-    }
-}
-
 pub async fn load_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
 

@@ -14,7 +14,7 @@ use spyland_lib::config::ConfigSection;
 pub struct Group {
     pub name: String,
     // pub icon: String,
-    pub color: Option<String>,
+    pub color: Option<Color>,
 
     #[serde(flatten)]
     pub selector: SessionSelector,

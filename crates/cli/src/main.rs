@@ -299,10 +299,7 @@ async fn time(
                                             Some(g) => Some(element! {
                                                 Text(
                                                     content: g.name,
-                                                    color: g.color
-                                                        .as_deref()
-                                                        .and_then(parse_hex_color)
-                                                        .map(|c| Color::Rgb { r: c.0, g: c.1, b: c.2 }),
+                                                    color: g.color,
                                                     italic: true,
                                                 )
                                             }),
