@@ -5,10 +5,12 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use crate::{Alias, Group};
 use anyhow::Result;
 use iocraft::prelude::Color;
-use spyland_core::Session;
+use spyland_core::{Session, State};
 use spyland_lib::db::{Db, QueryFilter};
+use std::collections::HashMap;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
 pub fn duration_color(seconds: i64, sensitivity: u64) -> Color {
@@ -142,7 +144,14 @@ pub fn human_duration(seconds: i64) -> String {
     }
 }
 
-pub async fn load_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec<Session>> {
+pub type SessionEntry = (Session, Option<Alias>);
+
+pub async fn load_sessions(
+    from: i64,
+    to: i64,
+    limit: Option<i64>,
+    aliases: Vec<Alias>,
+) -> Result<Vec<SessionEntry>> {
     let db = Db::open_default().await?;
 
     let sessions_sql = match (from, to, limit) {
@@ -158,5 +167,97 @@ pub async fn load_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec
         }
     };
 
-    Ok(sessions_sql.into_iter().map(Session::from).collect())
+    Ok(sessions_sql
+        .into_iter()
+        .map(Session::from)
+        .map(|session| {
+            let alias = match &session.state {
+                State::Active { app_id, .. } => aliases
+                    .iter()
+                    .find(|alias| alias.app_ids.contains(app_id))
+                    .cloned(),
+                State::Idle => None,
+            };
+            (session, alias)
+        })
+        .collect())
+}
+
+pub struct TimeEntry {
+    pub state: State,
+    pub duration: i64,
+    pub group: Option<Group>,
+    pub alias: Option<Alias>,
+}
+
+pub struct TimeData {
+    pub entries: Vec<TimeEntry>,
+    pub total_screen_time: i64,
+    pub idle_time: i64,
+}
+
+pub async fn load_time_data(
+    from: i64,
+    to: i64,
+    ascending: bool,
+    by_time: bool,
+    groups: Vec<Group>,
+    aliases: Vec<Alias>,
+) -> Result<TimeData> {
+    let sessions = load_sessions(from, to, None, aliases).await?;
+
+    let mut entries: HashMap<State, TimeEntry> = HashMap::new();
+    let mut total_screen_time = 0;
+    let mut idle_time = 0;
+
+    for (session, alias) in sessions {
+        let duration = session.end - session.start;
+        let group = groups
+            .iter()
+            .find(|g| g.selector.matches(&session.state))
+            .cloned();
+
+        match &session.state {
+            State::Active { .. } => {
+                total_screen_time += duration;
+
+                entries
+                    .entry(session.state.clone())
+                    .and_modify(|entry| entry.duration += duration)
+                    .or_insert(TimeEntry {
+                        state: session.state,
+                        duration,
+                        group,
+                        alias,
+                    });
+            }
+            State::Idle => idle_time += duration,
+        }
+    }
+
+    let mut entries: Vec<TimeEntry> = entries.into_values().collect();
+    entries.sort_by(|left, right| {
+        let ordering = if by_time {
+            left.duration.cmp(&right.duration)
+        } else {
+            match (&left.state, &right.state) {
+                (State::Active { app_id: left, .. }, State::Active { app_id: right, .. }) => {
+                    left.cmp(right)
+                }
+                _ => std::cmp::Ordering::Equal,
+            }
+        };
+
+        if ascending {
+            ordering
+        } else {
+            ordering.reverse()
+        }
+    });
+
+    Ok(TimeData {
+        entries,
+        total_screen_time,
+        idle_time,
+    })
 }
