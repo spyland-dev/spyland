@@ -21,4 +21,12 @@ doc:
     cargo test --doc --quiet
     cargo doc --no-deps --quiet
 
+alias c := cli
+cli *args:
+    @cargo run --quiet -p spyland -- {{args}}
+
+alias d := daemon
+daemon *args:
+    @cargo run --quiet -p spylandd -- {{args}}
+
 check: fmt build test doc clippy
