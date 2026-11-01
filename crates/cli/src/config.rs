@@ -20,6 +20,14 @@ pub struct Group {
     pub selector: SessionSelector,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Alias {
+    pub name: String,
+    pub color: Option<Color>,
+
+    pub app_ids: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -28,6 +36,7 @@ pub struct Config {
 
     pub theme: Theme,
     pub groups: Vec<Group>,
+    pub aliases: Vec<Alias>,
 }
 
 impl ConfigSection for Config {
@@ -68,6 +77,7 @@ impl Default for Config {
             sort_by_time: true,
             theme: Theme::default(),
             groups: Vec::new(),
+            aliases: Vec::new(),
         }
     }
 }
