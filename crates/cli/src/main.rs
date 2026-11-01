@@ -266,11 +266,7 @@ fn time(from: i64, to: i64, time_data: TimeData, theme: Theme) -> Result<()> {
                                 View(width: 12, padding_right: 1) {
                                     #(
                                         group.as_ref().map(|g| element! {
-                                            Text(
-                                                content: &g.name,
-                                                color: g.color,
-                                                italic: true,
-                                            )
+                                            Text(content: &g.name, color: g.color)
                                         })
                                     )
                                 }
