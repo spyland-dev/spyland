@@ -56,7 +56,7 @@ impl Default for Theme {
             app_name_color: Color::DarkCyan,
             idle_session_color: Color::DarkGrey,
             timeline_session_duration_sensitivity: 30,
-            timestats_total_time_sensitivity: 3 * 60,
+            timestats_total_time_sensitivity: 6 * 60,
             timestats_idle_time_sensitivity: 4 * 60,
         }
     }
