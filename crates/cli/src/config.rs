@@ -44,7 +44,6 @@ pub struct Theme {
     pub idle_session_color: Color,
 
     pub timeline_session_duration_sensitivity: u64,
-    pub timestats_app_time_sensitivity: u64,
     pub timestats_total_time_sensitivity: u64,
     pub timestats_idle_time_sensitivity: u64,
 }
@@ -57,7 +56,6 @@ impl Default for Theme {
             app_name_color: Color::DarkCyan,
             idle_session_color: Color::DarkGrey,
             timeline_session_duration_sensitivity: 30,
-            timestats_app_time_sensitivity: 60,
             timestats_total_time_sensitivity: 3 * 60,
             timestats_idle_time_sensitivity: 4 * 60,
         }

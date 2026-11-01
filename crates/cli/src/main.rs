@@ -328,7 +328,7 @@ async fn time(
                                 View(width: 12) {
                                     Text(
                                         content: human_duration(*time),
-                                        color: duration_color(*time, theme.timestats_app_time_sensitivity * 60)
+                                        color: duration_color(*time, ((tst) / 3).try_into().unwrap())
                                     )
                                 }
                             }
