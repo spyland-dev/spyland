@@ -11,21 +11,21 @@
 use crate::{Session, State};
 use std::collections::HashMap;
 
-/// A group of criteria to filter and classify sessions.
+/// An selector to filter and classify sessions.
 ///
 /// Holds application identifiers and workspace numbers to match against a [Session].
 /// For grouping sessions see [`group_sessions()`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SessionGroup {
+pub struct SessionSelector {
     /// List of application IDs. If empty, matches any application.
     pub app_ids: Vec<String>,
     /// List of workspace numbers. If empty, matches any workspace.
     pub workspaces: Vec<i32>,
 }
 
-impl SessionGroup {
-    /// Checks if a specified [State] matches the group rules.
+impl SessionSelector {
+    /// Checks if a specified [State] matches the [selector](SessionAnalytics) rules.
     pub fn matches(&self, state: &State) -> bool {
         match state {
             State::Active { app_id, workspace } => {
@@ -40,23 +40,23 @@ impl SessionGroup {
     }
 }
 
-/// Groups a list of sessions by the provided [SessionGroup] rules.
+/// Groups a list of sessions by the provided [selector](SessionSelector) rules.
 ///
-/// Returns a [HashMap] where keys are `Some(group)` for sessions matching a group,
+/// Returns a [HashMap] where keys are `Some(group)` for sessions matching a selector,
 /// or `None` for sessions that did not match any of the provided groups.
 ///
 /// # Arguments
 /// - `sessions` --- collection of sessions to group
-/// - `groups` --- list of groups to match against
+/// - `selectors` --- list of selectors to match against
 pub fn group_sessions(
     sessions: Vec<Session>,
-    groups: &[SessionGroup],
-) -> HashMap<Option<SessionGroup>, Vec<Session>> {
-    let mut map: HashMap<Option<SessionGroup>, Vec<Session>> = HashMap::new();
+    selectors: &[SessionSelector],
+) -> HashMap<Option<SessionSelector>, Vec<Session>> {
+    let mut map: HashMap<Option<SessionSelector>, Vec<Session>> = HashMap::new();
 
     for session in sessions {
         let mut matched_group = None;
-        for group in groups {
+        for group in selectors {
             if group.matches(&session.state) {
                 matched_group = Some(group.clone());
                 break;

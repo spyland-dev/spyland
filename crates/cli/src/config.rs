@@ -7,7 +7,7 @@
 
 use iocraft::Color;
 use serde::{Deserialize, Serialize};
-use spyland_core::analytics::SessionGroup;
+use spyland_core::analytics::SessionSelector;
 use spyland_lib::config::ConfigSection;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -17,7 +17,7 @@ pub struct Group {
     pub color: Option<String>,
 
     #[serde(flatten)]
-    pub session_group: SessionGroup,
+    pub selector: SessionSelector,
 }
 
 #[derive(Serialize, Deserialize)]

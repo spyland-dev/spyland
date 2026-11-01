@@ -285,7 +285,7 @@ async fn time(
                         let mut group: Option<Group> = None;
 
                         for grp in &groups {
-                            if grp.session_group.matches(state) {
+                            if grp.selector.matches(state) {
                                 group = Some(grp.clone());
                                 break;
                             }

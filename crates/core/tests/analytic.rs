@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use spyland_core::analytics::{SessionAnalytics, SessionGroup, group_sessions};
+use spyland_core::analytics::{SessionAnalytics, SessionSelector, group_sessions};
 use spyland_core::{Event, Session, State};
 
 mod common;
@@ -180,11 +180,11 @@ fn group_sessions_test() {
         state: State::Idle,
     };
 
-    let dev_group = SessionGroup {
+    let dev_group = SessionSelector {
         app_ids: vec![S2_APP_ID.into()],
         workspaces: vec![2],
     };
-    let browser_group = SessionGroup {
+    let browser_group = SessionSelector {
         app_ids: vec![S1_APP_ID.into()],
         workspaces: vec![],
     };
