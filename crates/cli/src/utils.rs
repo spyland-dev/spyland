@@ -6,10 +6,65 @@
  */
 
 use anyhow::Result;
+use iocraft::prelude::Color;
 use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
-use std::fmt::Write;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
+
+pub fn duration_color(seconds: i64, sensitivity: u64) -> Color {
+    assert_ne!(sensitivity, 0, "`sensitivity` can not be zero.");
+    let seconds: u64 = seconds
+        .try_into()
+        .expect("`seconds` can not be less than zero.");
+
+    let seconds = seconds.clamp(0, sensitivity * 2);
+    let (r, g) = if seconds <= sensitivity {
+        ((seconds * 255 / sensitivity) as u8, 255)
+    } else {
+        (
+            255,
+            (255 - (seconds - sensitivity) * 255 / sensitivity) as u8,
+        )
+    };
+
+    Color::Rgb { r, g, b: 0 }
+}
+
+pub fn time_color(time: OffsetDateTime) -> Color {
+    const KEYFRAMES: [(u16, (u8, u8, u8)); 7] = [
+        (0, (78, 101, 151)),
+        (7 * 60, (222, 202, 141)),
+        (12 * 60, (232, 231, 160)),
+        (15 * 60, (224, 185, 73)),
+        (18 * 60, (242, 124, 75)),
+        (20 * 60, (91, 111, 164)),
+        (24 * 60, (78, 101, 151)),
+    ];
+
+    let minute = u16::from(time.hour()) * 60 + u16::from(time.minute());
+    let interval = KEYFRAMES
+        .windows(2)
+        .find(|pair| minute >= pair[0].0 && minute <= pair[1].0)
+        .unwrap();
+
+    let (start_minute, (start_r, start_g, start_b)) = interval[0];
+    let (end_minute, (end_r, end_g, end_b)) = interval[1];
+
+    let elapsed = i32::from(minute - start_minute);
+    let duration = i32::from(end_minute - start_minute);
+
+    let interpolate = |start: u8, end: u8| {
+        let start = i32::from(start);
+        let difference = i32::from(end) - start;
+        (start + difference * elapsed / duration) as u8
+    };
+
+    Color::Rgb {
+        r: interpolate(start_r, end_r),
+        g: interpolate(start_g, end_g),
+        b: interpolate(start_b, end_b),
+    }
+}
 
 pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
     let s = s.trim();
@@ -73,29 +128,18 @@ pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
 }
 
 pub fn human_duration(seconds: i64) -> String {
-    if seconds == 0 {
-        return "0s".to_owned();
-    }
-
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
     let seconds = seconds % 60;
 
-    let mut str = String::new();
-
-    if hours > 0 {
-        let _ = write!(str, "{hours}h");
+    match (hours, minutes, seconds) {
+        (0, 0, 0) => "0s".to_owned(),
+        (0, 0, s) => format!("{s}s"),
+        (0, m, s) => format!("{m}m {s}s"),
+        (h, 0, 0) => format!("{h}h"),
+        (h, m, 0) => format!("{h}h {m}m"),
+        (h, m, s) => format!("{h}h {m}m {s}s"),
     }
-
-    if minutes > 0 {
-        let _ = write!(str, "{minutes}m");
-    }
-
-    if seconds > 0 {
-        let _ = write!(str, "{seconds}s");
-    }
-
-    str
 }
 
 pub fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
@@ -110,28 +154,15 @@ pub fn parse_hex_color(s: &str) -> Option<(u8, u8, u8)> {
     }
 }
 
-pub async fn load_sessions(
-    from: Option<String>,
-    to: Option<String>,
-    limit: Option<i64>,
-) -> Result<Vec<Session>> {
+pub async fn load_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
-    let offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
     let sessions_sql = match (from, to, limit) {
-        (None, None, None) => db.query_all().await?,
+        (0, 0, None) => db.query_all().await?,
         (f, t, limit) => {
-            let from = match f {
-                Some(s) => Some(parse_flexible_time(s, offset)?),
-                None => None,
-            };
-            let to = match t {
-                Some(s) => Some(parse_flexible_time(s, offset)?),
-                None => None,
-            };
             db.query_filtered(QueryFilter {
-                from,
-                to,
+                from: Some(f),
+                to: Some(t),
                 limit,
                 ..Default::default()
             })
