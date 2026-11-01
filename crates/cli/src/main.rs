@@ -239,6 +239,8 @@ fn time(from: i64, to: i64, time_data: TimeData, theme: Theme) -> Result<()> {
     let fdt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
     let tdt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
 
+    let time_period_multiplier = u64::try_from((to - from) / 86400)?.max(1);
+
     element! {
         View(flex_direction: FlexDirection::Column) {
             View {
@@ -308,14 +310,14 @@ fn time(from: i64, to: i64, time_data: TimeData, theme: Theme) -> Result<()> {
                 Text(content: "Total screen time: ", weight: Weight::Bold)
                 Text(
                     content: human_duration(tst),
-                    color: duration_color(tst, theme.timestats_total_time_sensitivity * 60)
+                    color: duration_color(tst, time_period_multiplier * theme.timestats_total_time_sensitivity * 60)
                 )
             }
             View {
                 Text(content: "Idle time: ", color: Color::DarkGrey, weight: Weight::Bold)
                 Text(
                     content: human_duration(idt),
-                    color: duration_color(idt, theme.timestats_idle_time_sensitivity * 60)
+                    color: duration_color(idt, time_period_multiplier * theme.timestats_idle_time_sensitivity * 60)
                 )
             }
         }
