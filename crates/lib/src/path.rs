@@ -1,3 +1,10 @@
+/*
+ *  spyland-lib — public library API for accessing spyland
+ *  part of the spyland project
+ *  Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
+ *  SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 //! A module to get spyland [database](get_database_path) and [socket](get_socket_path) paths.
 //! There are also safe versions that verify that the path is usable.
 
