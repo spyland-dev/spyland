@@ -3,4 +3,4 @@ resolver = "3"
 members = ["crates/cli", "crates/core", "crates/daemon", "crates/lib", "crates/niri"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.8.0"

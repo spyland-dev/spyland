@@ -1602,7 +1602,7 @@ dependencies = [
 
 [[package]]
 name = "spyland-cli"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1617,14 +1617,14 @@ dependencies = [
 
 [[package]]
 name = "spyland-core"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "spyland-lib"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -1637,7 +1637,7 @@ dependencies = [
 
 [[package]]
 name = "spylandd"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
