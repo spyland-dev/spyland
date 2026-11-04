@@ -1,7 +1,11 @@
 [package]
-name = "spyland"
+name = "spyland-cli"
 version.workspace = true
 edition = "2024"
+
+[[bin]]
+name = "spyland"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.102"

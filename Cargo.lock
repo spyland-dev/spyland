@@ -1587,21 +1587,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spyland"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "iocraft",
- "serde",
- "spyland-core",
- "spyland-lib",
- "time",
- "tokio",
- "toml",
-]
-
-[[package]]
 name = "spyland-backend-niri"
 version = "1.0.0"
 dependencies = [
@@ -1613,6 +1598,21 @@ dependencies = [
  "spyland-core",
  "spyland-lib",
  "tempfile",
+]
+
+[[package]]
+name = "spyland-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "iocraft",
+ "serde",
+ "spyland-core",
+ "spyland-lib",
+ "time",
+ "tokio",
+ "toml",
 ]
 
 [[package]]
