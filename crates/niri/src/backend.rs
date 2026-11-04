@@ -39,6 +39,16 @@ impl NiriBackend {
         })
     }
 
+    fn send_event(&mut self, event: CoreEvent) -> Result<()> {
+        match self.client.send_with_response(IpcRequest::Event(event))? {
+            IpcResponse::EventResponse(_) => Ok(()),
+            IpcResponse::Error(error) => {
+                anyhow::bail!("Server rejected event. ({error:?})")
+            }
+            response => anyhow::bail!("Unexpected response from server: {response:?}"),
+        }
+    }
+
     pub fn run(mut self) -> Result<()> {
         let response = self
             .client
@@ -85,9 +95,7 @@ impl NiriBackend {
                         for window in niri_windows {
                             windows.insert(window.id, window.clone());
                             if window.is_focused {
-                                self.client.send(IpcRequest::Event(
-                                    CoreEvent::ActiveWindowChanged(window.app_id),
-                                ))?;
+                                self.send_event(CoreEvent::ActiveWindowChanged(window.app_id))?;
                             }
                         }
                     }
@@ -110,38 +118,34 @@ impl NiriBackend {
                             for w in windows.values_mut() {
                                 if w.id == id {
                                     w.is_focused = true;
-                                    self.client.send(IpcRequest::Event(
-                                        CoreEvent::ActiveWindowChanged(w.app_id.clone()),
+                                    self.send_event(CoreEvent::ActiveWindowChanged(
+                                        w.app_id.clone(),
                                     ))?;
                                     break;
                                 }
                             }
                         }
                         None => {
-                            self.client
-                                .send(IpcRequest::Event(CoreEvent::ActiveWindowChanged(None)))?;
+                            self.send_event(CoreEvent::ActiveWindowChanged(None))?;
                         }
                     },
                     NiriEvent::WorkspacesChanged { workspaces } => {
                         for workspace in workspaces {
                             if workspace.is_focused {
-                                self.client.send(IpcRequest::Event(
-                                    CoreEvent::WorkspaceChanged(workspace.id.try_into().unwrap()),
+                                self.send_event(CoreEvent::WorkspaceChanged(
+                                    workspace.id.try_into().unwrap(),
                                 ))?;
                                 break;
                             }
                         }
                     }
                     NiriEvent::WorkspaceActivated { id, focused } if focused => {
-                        self.client
-                            .send(IpcRequest::Event(CoreEvent::WorkspaceChanged(
-                                id.try_into().unwrap(),
-                            )))?;
+                        self.send_event(CoreEvent::WorkspaceChanged(id.try_into().unwrap()))?;
                     }
                     _ => {}
                 },
                 Err(e) => {
-                    warn!("{:?}", e);
+                    warn!("Niri responded with the error: \"{:#}\"", e);
                     continue;
                 }
             }
