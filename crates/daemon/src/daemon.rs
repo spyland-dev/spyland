@@ -116,7 +116,7 @@ impl<C: Clock + Send + 'static> Daemon<C> {
     fn connection_handler(conn: IpcConnection, session_manager: Arc<Mutex<SessionManager<C>>>) {
         use spyland_lib::ipc::protocol::ServerError;
 
-        let registered: Option<bool> = None;
+        let mut registered: Option<bool> = None;
 
         loop {
             match conn.read() {
@@ -141,6 +141,8 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                                             "The '{backend_name}' ({pid}) backend is accepted! Protocol version: {protocol_version}"
                                         );
 
+                                        registered = Some(true);
+
                                         IpcResponse::HandshakeSuccessful
                                     }
                                     false => {
@@ -148,6 +150,8 @@ impl<C: Clock + Send + 'static> Daemon<C> {
                                             "The '{backend_name}' ({pid}) backend was rejected due to version incompatibility.",
                                         );
                                         debug!("{protocol_version} > {}", protocol::VERSION);
+
+                                        registered = Some(false);
 
                                         IpcResponse::Error(ServerError::ClientIncompability)
                                     }
