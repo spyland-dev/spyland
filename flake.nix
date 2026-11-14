@@ -68,7 +68,8 @@
       nixosModules.default = { config, lib, ... }:
         import ./res/nix/module.nix {
           inherit config lib;
-          defaultPackage = daemon;
+          defaultDaemonPkg = daemon;
+          defaultCliPkg = cli;
         };
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
