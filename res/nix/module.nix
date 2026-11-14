@@ -1,9 +1,10 @@
-{ config, lib, pkg, defaultCliPkg, defaultDaemonPkg, ... }:
+{ config, lib, pkg, defaultCliPkg, defaultNiriPkg, defaultDaemonPkg, ... }:
 let
   inherit (lib) mkEnableOption mkIf mkOption mkMerge types;
 
   ccfg = config.programs.spyland;
   dcfg = config.services.spylandd;
+  ncfg = config.services.spylandd.backends.niri;
 in
 {
   options.programs.spyland = {
@@ -36,13 +37,24 @@ in
     logLevel = mkOption {
       type = types.enum [ "trace" "debug" "info" "warn" "error" "off" ];
       default = "info";
-      description = "Log level passed to spylandd.";
+      description = "Log level passed to spylandd and backends.";
     };
 
     coreOptions = mkOption {
       type = types.attrsOf types.anything;
       default = { };
       description = "Configuration for spylandd; provides `core` section in TOML configuration.";
+    };
+  };
+
+  options.services.spylandd.backends.niri = {
+    enable = mkEnableOption "the spyland Niri compositor backend";
+
+    package = mkOption {
+      type = types.package;
+      default = defaultNiriPkg;
+      defaultText = "The flake's niri backend package";
+      description = "Package providing the spyland-backend-niri executable.";
     };
   };
 
@@ -66,6 +78,21 @@ in
         environment.systemPackages = [ ccfg.package ];
       })
 
+      (mkIf ncfg.enable {
+	systemd.user.units = {
+	  "spyland-backend-niri.service" = {
+	    text = builtins.readFile ../services/spyland-backend-niri.service;
+	    wantedBy = [ "spyland-backends.target" ];
+	  };
+          "spyland-backend-niri.service.d/override.conf".text = ''
+            [Service]
+            Environment=RUST_LOG=${dcfg.logLevel}
+            ExecStart=
+            ExecStart=${ncfg.package}/bin/spyland-backend-niri
+          '';
+	};
+      })
+
       (mkIf dcfg.enable {
         systemd.user.units = {
           "spylandd.service" = {
@@ -83,5 +110,14 @@ in
           };
         };
       })
+
+      {
+        assertions = [
+          {
+            assertion = !ncfg.enable || dcfg.enable;
+            message = "services.spylandd.backends.niri.enable requires services.spylandd.enable.";
+          }
+        ];
+      }
     ];
 }

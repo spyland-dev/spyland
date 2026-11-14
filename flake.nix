@@ -52,9 +52,16 @@
 	  cargoExtraArgs = "-p spylandd";
 	}
       );
+      niri = craneLib.buildPackage (
+	commonArgs
+	// {
+	  pname = "spyland-backend-niri";
+	  cargoExtraArgs = "-p spyland-backend-niri";
+	}
+      );
     in
     {
-      packages.${system} = { inherit cli daemon; };
+      packages.${system} = { inherit cli daemon niri; };
       apps.${system} = {
 	cli = {
 	  type = "app";
@@ -64,6 +71,10 @@
 	  type = "app";
 	  program = "${daemon}/bin/${daemon.pname}";
 	};
+	niri = {
+	  type = "app";
+	  program = "${niri}/bin/${niri.pname}";
+	};
       };
       nixosModules.default = {
         imports = [ ./res/nix/module.nix ];
@@ -71,6 +82,7 @@
           pkg = pkgs;
           defaultDaemonPkg = daemon;
           defaultCliPkg = cli;
+	  defaultNiriPkg = niri;
         };
       };
       devShells.${system}.default = pkgs.mkShell {
