@@ -27,8 +27,10 @@
           || pkgs.lib.hasPrefix "${sqlxDir}/" pathString;
       };
 
+      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
       commonArgs = {
-	inherit src;
+	inherit src cargoArtifacts;
 
 	cargoLock = ./Cargo.lock;
 	cargoToml = ./Cargo.toml;
@@ -83,6 +85,22 @@
     in
     {
       packages.${system} = { inherit cli daemon core lib niri; };
+      checks.${system} = 
+      {
+	fmt = craneLib.cargoFmt { inherit src; };
+
+	inherit cli daemon core lib niri;
+
+	test = craneLib.cargoNextest commonArgs;
+
+	doc = craneLib.cargoDoc commonArgs;
+
+	clippy = craneLib.cargoClippy (
+	  commonArgs // {
+	    cargoClippyExtraArgs = "--all-targets --all-features -- -D warnings";
+	  }
+	);
+      };
       apps.${system} = {
 	cli = commonMeta // {
 	  type = "app";
