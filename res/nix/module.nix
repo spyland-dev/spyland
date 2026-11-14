@@ -48,7 +48,7 @@ in
   };
 
   options.services.spylandd.backends.niri = {
-    enable = mkEnableOption "the spyland Niri compositor backend";
+    enable = mkEnableOption "The spyland niri compositor backend";
 
     package = mkOption {
       type = types.package;
