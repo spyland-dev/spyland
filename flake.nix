@@ -2,45 +2,29 @@
   description = "Nix shell for Rust `spyland` development";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.crane.url = "github:ipetkov/crane";
 
-  outputs = { nixpkgs, ... }:
+  outputs = { nixpkgs, crane, ... }:
     let
       system = builtins.currentSystem or "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-
-      varDir = "/var/tmp/spyland-debug/";
-      database = "${varDir}/sessions.sqlite";
-      socket = "${varDir}/spyland.sock";
-      config = "${varDir}/config.toml";
+      rust = import ./res/nix/crane.nix { inherit pkgs crane; };
+      devShell = import ./res/nix/dev-shell.nix { inherit pkgs; };
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-	  rustc
-	  cargo
-	  rustfmt
-	  rust-analyzer
-	  clippy
+      packages.${system} = rust.packages;
+      checks.${system} = rust.checks;
+      apps.${system} = rust.apps;
+      devShells.${system}.default = devShell;
 
-	  just
-
-	  cargo-nextest # optional
-
-	  sqlite
-	  sqlx-cli
-	];
-
-	shellHook = "mkdir -p ${varDir}"; 
-
-	# Override spyland's directories to `varDir` to avoid conflicts
-	# between the release and development versions running at the same time.
-	SPYLAND_DATABASE = database;
-	SPYLAND_SOCKET = socket;
-	SPYLAND_CONFIG = config;
-
-	SQLX_OFFLINE = true;
-	DATABASE_URL = "sqlite://${database}";
-	RUST_LOG = "debug";
+      nixosModules.default = {
+	imports = [ ./module.nix ];
+	_module.args = {
+	  pkg = pkgs;
+	  defaultDaemonPkg = rust.packages.daemon;
+	  defaultCliPkg = rust.packages.cli;
+	  defaultNiriPkg = rust.packages.niri;
+	};
       };
-    };
+  };
 }
