@@ -6,7 +6,7 @@
  */
 
 use anyhow::{Context, Result};
-use log::{error, info};
+use log::info;
 use spyland_backend_niri::NiriBackend;
 
 fn main() -> Result<()> {
@@ -14,16 +14,7 @@ fn main() -> Result<()> {
 
     info!("Starting niri backend...");
 
-    let backend = NiriBackend::try_default().context("Failed to start backend");
-
-    match backend {
-        Ok(b) => {
-            if let Err(e) = b.run() {
-                error!("{e:#}");
-            }
-        }
-        Err(e) => error!("{e:#}"),
-    }
-
-    Ok(())
+    NiriBackend::try_default()
+        .context("Failed to start backend")?
+        .run()
 }
