@@ -32,10 +32,17 @@
 
 	cargoLock = ./Cargo.lock;
 	cargoToml = ./Cargo.toml;
-
 	SQLX_OFFLINE = "true";
 
 	strictDeps = true;
+      };
+
+      commonMeta = {
+	meta = {
+	  homepage = "https://github.com/spyland-dev/spyland";
+	  platforms = [ "x86_64-linux" ];
+	  license = pkgs.lib.licenses.gpl3Plus;
+	};
       };
 
       cli = craneLib.buildPackage (
@@ -63,17 +70,26 @@
     {
       packages.${system} = { inherit cli daemon niri; };
       apps.${system} = {
-	cli = {
+	cli = commonMeta // {
 	  type = "app";
 	  program = "${cli}/bin/${cli.pname}";
+
+	  meta.description = "The spyland command-line interface";
+	  meta.mainProgram = "spyland";
 	};
-	daemon = {
+	daemon = commonMeta // {
 	  type = "app";
 	  program = "${daemon}/bin/${daemon.pname}";
+
+	  meta.description = "The spyland screen-time tracking daemon";
+	  meta.mainProgram = "spylandd";
 	};
-	niri = {
+	niri = commonMeta // {
 	  type = "app";
 	  program = "${niri}/bin/${niri.pname}";
+
+	  meta.description = "The spyland niri compositor backend";
+	  meta.mainProgram = "spyland-backend-niri";
 	};
       };
       nixosModules.default = {
