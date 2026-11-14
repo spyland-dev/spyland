@@ -121,19 +121,27 @@ define_path_ensurer!(
 ///
 /// Available pathes:
 /// - `$SPYLAND_CONFIG`
+/// - `/etc/spyland.toml`
 /// - `$XDG_CONFIG_HOME/spyland/config.toml`
 /// - `$HOME/.config/spyland/config.toml`
 pub fn get_config_path() -> Result<PathBuf> {
     let config_file = match env::var("SPYLAND_CONFIG") {
         Ok(file) => PathBuf::from(file),
-        Err(_) => match env::var("XDG_CONFIG_HOME") {
-            Ok(p) => PathBuf::from(p),
-            Err(_) => {
-                let home = env::var("HOME").context("Home directory is not set")?;
-                PathBuf::from(home).join(".config/")
+        Err(_) => {
+            let system_config = PathBuf::from("/etc/spyland.toml");
+            if system_config.exists() {
+                system_config
+            } else {
+                match env::var("XDG_CONFIG_HOME") {
+                    Ok(p) => PathBuf::from(p),
+                    Err(_) => {
+                        let home = env::var("HOME").context("Home directory is not set")?;
+                        PathBuf::from(home).join(".config/")
+                    }
+                }
+                .join("spyland/config.toml")
             }
         }
-        .join("spyland/config.toml"),
     };
 
     Ok(config_file)
@@ -144,6 +152,7 @@ define_path_ensurer!(
     ///
     /// Available pathes:
     /// - `$SPYLAND_CONFIG`
+    /// - `/etc/spyland.toml`
     /// - `$XDG_CONFIG_HOME/spyland/config.toml`
     /// - `$HOME/.config/spyland/config.toml`
     ensure_config_path,

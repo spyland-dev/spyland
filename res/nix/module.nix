@@ -61,7 +61,7 @@ in
   config =
     let
       toml = pkg.formats.toml { };
-      configToml = toml.generate "config.toml" (
+      configToml = toml.generate "spyland.toml" (
         (lib.optionalAttrs ccfg.enable {
           frontend.cli = ccfg.settings;
         }) // (lib.optionalAttrs dcfg.enable {
@@ -71,7 +71,7 @@ in
     in
     mkMerge [
       (mkIf (ccfg.enable || dcfg.enable) {
-        environment.variables.SPYLAND_CONFIG = configToml;
+        environment.etc."spyland.toml".source = configToml;
       })
 
       (mkIf ccfg.enable {
