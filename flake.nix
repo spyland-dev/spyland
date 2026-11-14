@@ -59,6 +59,20 @@
 	  cargoExtraArgs = "-p spylandd";
 	}
       );
+      core = craneLib.buildPackage (
+      	commonArgs
+	// {
+	  pname = "spyland-core";
+	  cargoExtraArgs = "-p spyland-core";
+	}
+      );
+      lib = craneLib.buildPackage (
+      	commonArgs
+	// {
+	  pname = "spyland-lib";
+	  cargoExtraArgs = "-p spyland-lib";
+	}
+      );
       niri = craneLib.buildPackage (
 	commonArgs
 	// {
@@ -68,7 +82,7 @@
       );
     in
     {
-      packages.${system} = { inherit cli daemon niri; };
+      packages.${system} = { inherit cli daemon core lib niri; };
       apps.${system} = {
 	cli = commonMeta // {
 	  type = "app";
