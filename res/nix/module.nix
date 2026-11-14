@@ -68,6 +68,7 @@ in
           core = dcfg.coreOptions;
         })
       );
+      coreOptionsHash = builtins.hashString "sha256" (builtins.toJSON dcfg.coreOptions);
     in
     mkMerge [
       (mkIf (ccfg.enable || dcfg.enable) {
@@ -84,6 +85,7 @@ in
 	    text = builtins.readFile ../services/spyland-backend-niri.service;
 	    wantedBy = [ "spyland-backends.target" ];
 	  };
+
           "spyland-backend-niri.service.d/override.conf".text = ''
             [Service]
             Environment=RUST_LOG=${dcfg.logLevel}
@@ -103,11 +105,19 @@ in
             [Service]
             ExecStart=
             ExecStart=${dcfg.package}/bin/spylandd -l ${dcfg.logLevel}
+
+            [Unit]
+            X-Restart-Triggers=${coreOptionsHash}
           '';
+
           "spyland-backends.target" = {
             text = builtins.readFile ../services/spyland-backends.target;
             wantedBy = [ "graphical-session.target" ];
           };
+          "spyland-backends.target.d/core-options-restart.conf".text = ''
+            [Unit]
+            X-Restart-Triggers=${coreOptionsHash}
+          '';
         };
       })
 
