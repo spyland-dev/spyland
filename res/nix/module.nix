@@ -1,4 +1,5 @@
 { config, lib, pkg, defaultCliPkg, defaultNiriPkg, defaultDaemonPkg, ... }:
+
 let
   inherit (lib) mkEnableOption mkIf mkOption mkMerge types;
 

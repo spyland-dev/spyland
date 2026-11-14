@@ -8,158 +8,23 @@
     let
       system = builtins.currentSystem or "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-
-      varDir = "/var/tmp/spyland-debug/";
-      database = "${varDir}/sessions.sqlite";
-      socket = "${varDir}/spyland.sock";
-      config = "${varDir}/config.toml";
-
-      craneLib = crane.mkLib pkgs;
-      src = pkgs.lib.cleanSourceWith {
-        src = ./.;
-        filter = path: type:
-          let
-            pathString = toString path;
-            sqlxDir = "${toString ./.}/crates/lib/.sqlx";
-          in
-          craneLib.filterCargoSources path type
-          || pathString == sqlxDir
-          || pkgs.lib.hasPrefix "${sqlxDir}/" pathString;
-      };
-
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-
-      commonArgs = {
-	inherit src cargoArtifacts;
-
-	cargoLock = ./Cargo.lock;
-	cargoToml = ./Cargo.toml;
-	SQLX_OFFLINE = "true";
-
-	strictDeps = true;
-      };
-
-      commonMeta = {
-	meta = {
-	  homepage = "https://github.com/spyland-dev/spyland";
-	  platforms = [ "x86_64-linux" ];
-	  license = pkgs.lib.licenses.gpl3Plus;
-	};
-      };
-
-      cli = craneLib.buildPackage (
-	commonArgs
-	// {
-	  pname = "spyland";
-	  cargoExtraArgs = "-p spyland-cli";
-	}
-      );
-      daemon = craneLib.buildPackage (
-	commonArgs
-	// {
-	  pname = "spylandd";
-	  cargoExtraArgs = "-p spylandd";
-	}
-      );
-      core = craneLib.buildPackage (
-      	commonArgs
-	// {
-	  pname = "spyland-core";
-	  cargoExtraArgs = "-p spyland-core";
-	}
-      );
-      lib = craneLib.buildPackage (
-      	commonArgs
-	// {
-	  pname = "spyland-lib";
-	  cargoExtraArgs = "-p spyland-lib";
-	}
-      );
-      niri = craneLib.buildPackage (
-	commonArgs
-	// {
-	  pname = "spyland-backend-niri";
-	  cargoExtraArgs = "-p spyland-backend-niri";
-	}
-      );
+      rust = import ./res/nix/crane.nix { inherit pkgs crane; };
+      devShell = import ./res/nix/dev-shell.nix { inherit pkgs; };
     in
     {
-      packages.${system} = { inherit cli daemon core lib niri; };
-      checks.${system} = 
-      {
-	fmt = craneLib.cargoFmt { inherit src; };
+      packages.${system} = rust.packages;
+      checks.${system} = rust.checks;
+      apps.${system} = rust.apps;
+      devShells.${system}.default = devShell;
 
-	inherit cli daemon core lib niri;
-
-	test = craneLib.cargoNextest commonArgs;
-
-	doc = craneLib.cargoDoc commonArgs;
-
-	clippy = craneLib.cargoClippy (
-	  commonArgs // {
-	    cargoClippyExtraArgs = "--all-targets --all-features -- -D warnings";
-	  }
-	);
-      };
-      apps.${system} = {
-	cli = commonMeta // {
-	  type = "app";
-	  program = "${cli}/bin/${cli.pname}";
-
-	  meta.description = "The spyland command-line interface";
-	  meta.mainProgram = "spyland";
-	};
-	daemon = commonMeta // {
-	  type = "app";
-	  program = "${daemon}/bin/${daemon.pname}";
-
-	  meta.description = "The spyland screen-time tracking daemon";
-	  meta.mainProgram = "spylandd";
-	};
-	niri = commonMeta // {
-	  type = "app";
-	  program = "${niri}/bin/${niri.pname}";
-
-	  meta.description = "The spyland niri compositor backend";
-	  meta.mainProgram = "spyland-backend-niri";
-	};
-      };
       nixosModules.default = {
-        imports = [ ./res/nix/module.nix ];
-        _module.args = {
-          pkg = pkgs;
-          defaultDaemonPkg = daemon;
-          defaultCliPkg = cli;
-	  defaultNiriPkg = niri;
-        };
+	imports = [ ./module.nix ];
+	_module.args = {
+	  pkg = pkgs;
+	  defaultDaemonPkg = rust.packages.daemon;
+	  defaultCliPkg = rust.packages.cli;
+	  defaultNiriPkg = rust.packages.niri;
+	};
       };
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-	  rustc
-	  cargo
-	  rustfmt
-	  rust-analyzer
-	  clippy
-
-	  just
-
-	  cargo-nextest # optional
-
-	  sqlite
-	  sqlx-cli
-	];
-
-	shellHook = "mkdir -p ${varDir}"; 
-
-	# Override spyland's directories to `varDir` to avoid conflicts
-	# between the release and development versions running at the same time.
-	SPYLAND_DATABASE = database;
-	SPYLAND_SOCKET = socket;
-	SPYLAND_CONFIG = config;
-
-	SQLX_OFFLINE = true;
-	DATABASE_URL = "sqlite://${database}";
-	RUST_LOG = "debug";
-      };
-    };
+  };
 }
