@@ -65,12 +65,14 @@
 	  program = "${daemon}/bin/${daemon.pname}";
 	};
       };
-      nixosModules.default = { config, lib, ... }:
-        import ./res/nix/module.nix {
-          inherit config lib;
+      nixosModules.default = {
+        imports = [ ./res/nix/module.nix ];
+        _module.args = {
+          pkg = pkgs;
           defaultDaemonPkg = daemon;
           defaultCliPkg = cli;
         };
+      };
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
 	  rustc

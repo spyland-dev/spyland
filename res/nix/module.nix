@@ -1,4 +1,4 @@
-{ config, lib, defautlCliPkg, defaultDaemonPkg, ... }:
+{ config, lib, pkg, defaultCliPkg, defaultDaemonPkg, ... }:
 let
   inherit (lib) mkEnableOption mkIf mkOption mkMerge types;
 
@@ -11,9 +11,15 @@ in
 
     package = mkOption {
       type = types.package;
-      default = defautlCliPkg;
+      default = defaultCliPkg;
       defaultText = "The flake's CLI package";
       description = "Package providing the spyland (CLI) executable.";
+    };
+
+    settings = mkOption {
+      type = types.attrsOf types.anything;
+      default = { };
+      description = "Configuration for spyland CLI; sets `frontend.cli` section in TOML configuration.";
     };
   };
 
@@ -32,22 +38,50 @@ in
       default = "info";
       description = "Log level passed to spylandd.";
     };
+
+    coreOptions = mkOption {
+      type = types.attrsOf types.anything;
+      default = { };
+      description = "Configuration for spylandd; provides `core` section in TOML configuration.";
+    };
   };
 
-  config = mkMerge [
-    mkIf ccfg.enable {
-      environment.systemPackages = [ ccfg.package ];
-    }
+  config =
+    let
+      toml = pkg.formats.toml { };
+      configToml = toml.generate "config.toml" (
+        (lib.optionalAttrs ccfg.enable {
+          frontend.cli = ccfg.settings;
+        }) // (lib.optionalAttrs dcfg.enable {
+          core = dcfg.coreOptions;
+        })
+      );
+    in
+    mkMerge [
+      (mkIf (ccfg.enable || dcfg.enable) {
+        environment.variables.SPYLAND_CONFIG = configToml;
+      })
 
-    mkIf dcfg.enable {
-      systemd.user.units = {
-        "spylandd.service".text = builtins.readFile ../services/spylandd.service;
-        "spyland-backends.target".text = builtins.readFile ../services/spyland-backends.target;
-      };
-      systemd.services."spylandd" = {
-        enable = true;
-        serviceConfig.ExecStart = "${dcfg.package}/bin/spylandd -l ${dcfg.logLevel}";
-      };
-    }
-  ];
+      (mkIf ccfg.enable {
+        environment.systemPackages = [ ccfg.package ];
+      })
+
+      (mkIf dcfg.enable {
+        systemd.user.units = {
+          "spylandd.service" = {
+            text = builtins.readFile ../services/spylandd.service;
+            wantedBy = [ "graphical-session.target" ];
+          };
+          "spylandd.service.d/override.conf".text = ''
+            [Service]
+            ExecStart=
+            ExecStart=${dcfg.package}/bin/spylandd -l ${dcfg.logLevel}
+          '';
+          "spyland-backends.target" = {
+            text = builtins.readFile ../services/spyland-backends.target;
+            wantedBy = [ "graphical-session.target" ];
+          };
+        };
+      })
+    ];
 }
