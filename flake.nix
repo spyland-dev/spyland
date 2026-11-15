@@ -18,7 +18,7 @@
       devShells.${system}.default = devShell;
 
       nixosModules.default = {
-	imports = [ ./module.nix ];
+	imports = [ ./res/nix/module.nix ];
 	_module.args = {
 	  pkg = pkgs;
 	  defaultDaemonPkg = rust.packages.daemon;
