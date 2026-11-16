@@ -33,6 +33,7 @@ pub struct Alias {
 pub struct Config {
     pub sort_ascending: bool,
     pub sort_by_time: bool,
+    pub display_workspace: bool,
 
     pub theme: Theme,
     pub groups: Vec<Group>,
@@ -75,6 +76,7 @@ impl Default for Config {
         Self {
             sort_ascending: true,
             sort_by_time: true,
+            display_workspace: false,
             theme: Theme::default(),
             groups: Vec::new(),
             aliases: Vec::new(),

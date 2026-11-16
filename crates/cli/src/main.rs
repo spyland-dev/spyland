@@ -37,6 +37,9 @@ enum Command {
         /// Maximum number of sessions to display.
         #[arg(short = 'L', long)]
         limit: Option<i64>,
+        /// Enable workspace displaying
+        #[arg(short = 'W', long)]
+        workspace: Option<bool>,
     },
     /// Shows your total screen time
     Time {
@@ -46,6 +49,9 @@ enum Command {
         /// Sort by time
         #[arg(short = 'T', long)]
         by_time: Option<bool>,
+        /// Enable workspace displaying
+        #[arg(short = 'W', long)]
+        workspace: Option<bool>,
     },
 }
 
@@ -96,14 +102,19 @@ async fn main() -> Result<()> {
     };
 
     match args.command {
-        Command::Sessions { limit } => {
+        Command::Sessions { limit, workspace } => {
             let (from, to) = resolve_range(args.from, args.to, 1)?;
             sessions(
                 load_sessions(from, to, limit, config.aliases).await?,
+                workspace.unwrap_or(config.display_workspace),
                 config.theme,
             )
         }
-        Command::Time { ascending, by_time } => {
+        Command::Time {
+            ascending,
+            by_time,
+            workspace,
+        } => {
             let (from, to) = resolve_range(args.from, args.to, 7)?;
             time(
                 from,
@@ -117,13 +128,14 @@ async fn main() -> Result<()> {
                     config.aliases,
                 )
                 .await?,
+                workspace.unwrap_or(config.display_workspace),
                 config.theme,
             )
         }
     }
 }
 
-fn sessions(sessions: Vec<SessionEntry>, theme: Theme) -> Result<()> {
+fn sessions(sessions: Vec<SessionEntry>, wdisplay: bool, theme: Theme) -> Result<()> {
     let offset = UtcOffset::current_local_offset()?;
     let date_format =
         format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
@@ -188,28 +200,56 @@ fn sessions(sessions: Vec<SessionEntry>, theme: Theme) -> Result<()> {
                                     color: time_color(cdt)
                                 )
                                 #(
-                                    match (&session.state, alias) {
-                                        (State::Active { .. }, Some(al)) => element! {
+                                    match (&session.state, alias, wdisplay) {
+                                        (State::Active { .. }, Some(al), false) => element!( View {
                                             Text(
                                                 content: &al.name,
                                                 weight: Weight::Bold,
                                                 color: al.color.unwrap_or(theme.app_name_color)
                                             )
-                                        },
-                                        (State::Active { app_id, .. }, None ) => element! {
+                                        }),
+                                        (State::Active { workspace: w, .. }, Some(al), true) => element!(
+                                            View {
+                                                Text(
+                                                    content: &al.name,
+                                                    weight: Weight::Bold,
+                                                    color: al.color.unwrap_or(theme.app_name_color)
+                                                )
+                                                Text(
+                                                    content: format!(" ({})",
+                                                        w.map(|w| w.to_string()).unwrap_or_default()
+                                                    ),
+                                                    color: Color::Grey,
+                                                )
+                                            }),
+                                        (State::Active { app_id, workspace: w, .. }, None, true) => element!(
+                                            View {
+                                                Text(
+                                                    content: app_id,
+                                                    weight: Weight::Bold,
+                                                    color: theme.app_name_color
+                                                )
+                                                Text(
+                                                    content: format!(" ({})",
+                                                        w.map(|w| w.to_string()).unwrap_or_default()
+                                                    ),
+                                                    color: Color::Grey,
+                                                )
+                                            }),
+                                        (State::Active { app_id, .. }, None, false) => element! ( View {
                                             Text(
                                                 content: app_id,
                                                 weight: Weight::Bold,
                                                 color: theme.app_name_color
                                             )
-                                        },
-                                        (State::Idle, _) => element! {
+                                        }),
+                                        (State::Idle, _, _) => element!( View {
                                             Text(
                                                 content: "Idle",
                                                 color: theme.idle_session_color,
                                                 weight: Weight::Bold
                                             )
-                                        }
+                                        })
                                     }
                                 )
                                 Text(content: ": ")
@@ -229,7 +269,7 @@ fn sessions(sessions: Vec<SessionEntry>, theme: Theme) -> Result<()> {
     Ok(())
 }
 
-fn time(from: i64, to: i64, time_data: TimeData, theme: Theme) -> Result<()> {
+fn time(from: i64, to: i64, time_data: TimeData, wdisplay: bool, theme: Theme) -> Result<()> {
     let tst = time_data.total_screen_time;
     let idt = time_data.idle_time;
 
@@ -274,24 +314,56 @@ fn time(from: i64, to: i64, time_data: TimeData, theme: Theme) -> Result<()> {
                                 }
                                 View(width: 24, padding_right: 1) {
                                     #(
-                                        match (state, alias) {
-                                            (State::Active { .. }, Some(a)) =>
-                                                Some(element! {
+                                        match (state, alias, wdisplay) {
+                                            (State::Active { .. }, Some(a), false) =>
+                                                Some(element! { View {
                                                     Text(
                                                         content: &a.name,
                                                         color: a.color.unwrap_or(theme.app_name_color),
                                                         weight: Weight::Bold
                                                     )
-                                                }),
-                                            (State::Active { app_id, .. }, None) =>
+                                                }}),
+                                            (State::Active { workspace: w, .. }, Some(a), true) =>
                                                 Some(element! {
+                                                    View {
+                                                        Text(
+                                                            content: &a.name,
+                                                            color: a.color.unwrap_or(theme.app_name_color),
+                                                            weight: Weight::Bold
+                                                        )
+                                                        Text(
+                                                            content: format!(" ({})",
+                                                                w.map(|w| w.to_string()).unwrap_or_default()
+                                                            ),
+                                                            color: Color::Grey,
+                                                        )
+                                                    }
+                                                }),
+                                            (State::Active { app_id, workspace: w, .. }, None, true) =>
+                                                Some(element! {
+                                                    View {
+                                                        Text(
+                                                            content: app_id,
+                                                            color: theme.app_name_color,
+                                                            weight: Weight::Bold
+                                                        )
+                                                        Text(
+                                                            content: format!(" ({})",
+                                                                w.map(|w| w.to_string()).unwrap_or_default()
+                                                            ),
+                                                            color: Color::Grey,
+                                                        )
+                                                    }
+                                                }),
+                                            (State::Active { app_id, .. }, None, false) =>
+                                                Some(element! { View {
                                                     Text(
                                                         content: app_id,
                                                         color: theme.app_name_color,
                                                         weight: Weight::Bold
                                                     )
-                                                }),
-                                            (State::Idle, _) => None,
+                                                }}),
+                                            (State::Idle, _, _) => None,
                                         }
                                     )
                                 }
