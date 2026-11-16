@@ -151,6 +151,28 @@ pub async fn load_sessions(
     to: i64,
     limit: Option<i64>,
     aliases: Vec<Alias>,
+    display_workspace: bool,
+) -> Result<Vec<SessionEntry>> {
+    let mut sessions = query_sessions(from, to, limit, aliases).await?;
+    if !display_workspace {
+        for (session, _) in &mut sessions {
+            if let State::Active { app_id, .. } = &session.state {
+                session.state = State::Active {
+                    app_id: app_id.clone(),
+                    workspace: None,
+                }
+            }
+        }
+    }
+
+    Ok(sessions)
+}
+
+async fn query_sessions(
+    from: i64,
+    to: i64,
+    limit: Option<i64>,
+    aliases: Vec<Alias>,
 ) -> Result<Vec<SessionEntry>> {
     let db = Db::open_default().await?;
 
@@ -201,10 +223,11 @@ pub async fn load_time_data(
     to: i64,
     ascending: bool,
     by_time: bool,
+    display_workspace: bool,
     groups: Vec<Group>,
     aliases: Vec<Alias>,
 ) -> Result<TimeData> {
-    let sessions = load_sessions(from, to, None, aliases).await?;
+    let sessions = query_sessions(from, to, None, aliases).await?;
 
     let mut entries: HashMap<State, TimeEntry> = HashMap::new();
     let mut total_screen_time = 0;
@@ -221,11 +244,23 @@ pub async fn load_time_data(
             State::Active { .. } => {
                 total_screen_time += duration;
 
+                let state = if display_workspace {
+                    session.state.clone()
+                } else {
+                    if let State::Active { app_id, .. } = &session.state {
+                        State::Active {
+                            app_id: app_id.clone(),
+                            workspace: None,
+                        }
+                    } else {
+                        session.state
+                    }
+                };
                 entries
-                    .entry(session.state.clone())
+                    .entry(state.clone())
                     .and_modify(|entry| entry.duration += duration)
                     .or_insert(TimeEntry {
-                        state: session.state,
+                        state,
                         duration,
                         group,
                         alias,

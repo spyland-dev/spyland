@@ -105,7 +105,14 @@ async fn main() -> Result<()> {
         Command::Sessions { limit, workspace } => {
             let (from, to) = resolve_range(args.from, args.to, 1)?;
             sessions(
-                load_sessions(from, to, limit, config.aliases).await?,
+                load_sessions(
+                    from,
+                    to,
+                    limit,
+                    config.aliases,
+                    workspace.unwrap_or(config.display_workspace),
+                )
+                .await?,
                 workspace.unwrap_or(config.display_workspace),
                 config.theme,
             )
@@ -124,6 +131,7 @@ async fn main() -> Result<()> {
                     to,
                     ascending.unwrap_or(config.sort_ascending),
                     by_time.unwrap_or(config.sort_by_time),
+                    workspace.unwrap_or(config.display_workspace),
                     config.groups,
                     config.aliases,
                 )
