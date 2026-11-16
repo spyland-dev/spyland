@@ -23,7 +23,7 @@ doc:
 
 alias c := cli
 cli *args:
-    @cargo run --quiet -p spyland -- {{args}}
+    @cargo run --quiet -p spyland-cli -- {{args}}
 
 alias d := daemon
 daemon *args:
