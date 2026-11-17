@@ -308,6 +308,7 @@ fn time(from: i64, to: i64, time_data: TimeData, wdisplay: bool, theme: Theme) -
             View(
                 flex_direction: FlexDirection::Column,
                 padding: 1,
+                padding_bottom: 0,
             ) {
                 #(
                     time_data.entries.iter().map(|TimeEntry { state, duration, group, alias }| {
@@ -383,6 +384,24 @@ fn time(from: i64, to: i64, time_data: TimeData, wdisplay: bool, theme: Theme) -
                                 }
                             }
                         )
+                    })
+                )
+            }
+            View(
+                flex_direction: FlexDirection::Column,
+                padding: 1,
+            ) {
+                #(
+                    time_data.groups_time.iter().map(|(group, time)| element! {
+                        View {
+                            View(width: 12, padding_right: 1) {
+                                Text(content: &group.name, color: group.color)
+                            }
+                            Text(
+                                content: human_duration(*time),
+                                color: duration_color(*time, ((tst) / 3).try_into().unwrap()),
+                            )
+                        }
                     })
                 )
             }

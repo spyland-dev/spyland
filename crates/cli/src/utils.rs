@@ -214,6 +214,7 @@ pub struct TimeEntry {
 
 pub struct TimeData {
     pub entries: Vec<TimeEntry>,
+    pub groups_time: HashMap<Group, i64>,
     pub total_screen_time: i64,
     pub idle_time: i64,
 }
@@ -230,6 +231,7 @@ pub async fn load_time_data(
     let sessions = query_sessions(from, to, None, aliases).await?;
 
     let mut entries: HashMap<State, TimeEntry> = HashMap::new();
+    let mut groups_time = HashMap::new();
     let mut total_screen_time = 0;
     let mut idle_time = 0;
 
@@ -239,6 +241,13 @@ pub async fn load_time_data(
             .iter()
             .find(|g| g.selector.matches(&session.state))
             .cloned();
+
+        if let Some(g) = group.clone() {
+            groups_time
+                .entry(g)
+                .and_modify(|d| *d += duration)
+                .or_insert(duration);
+        }
 
         match &session.state {
             State::Active { .. } => {
@@ -292,6 +301,7 @@ pub async fn load_time_data(
 
     Ok(TimeData {
         entries,
+        groups_time,
         total_screen_time,
         idle_time,
     })

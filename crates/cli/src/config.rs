@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use spyland_core::analytics::SessionSelector;
 use spyland_lib::config::ConfigSection;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct Group {
     pub name: String,
     // pub icon: String,
