@@ -56,14 +56,17 @@ enum Command {
 }
 
 use anyhow::Result;
-use iocraft::prelude::*;
-use spyland_core::State;
 use spyland_lib::config::ConfigFile;
-use time::{OffsetDateTime, Time, UtcOffset, format_description};
+use time::{OffsetDateTime, Time, UtcOffset};
 
+mod commands;
 mod config;
 mod utils;
-use crate::{config::*, utils::*};
+use crate::{
+    commands::{timeline::load_sessions, timestats::load_time_data},
+    config::*,
+    utils::*,
+};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
@@ -104,7 +107,7 @@ async fn main() -> Result<()> {
     match args.command {
         Command::Sessions { limit, workspace } => {
             let (from, to) = resolve_range(args.from, args.to, 1)?;
-            sessions(
+            commands::timeline::sessions(
                 load_sessions(
                     from,
                     to,
@@ -123,7 +126,7 @@ async fn main() -> Result<()> {
             workspace,
         } => {
             let (from, to) = resolve_range(args.from, args.to, 7)?;
-            time(
+            commands::timestats::time(
                 from,
                 to,
                 load_time_data(
@@ -141,286 +144,4 @@ async fn main() -> Result<()> {
             )
         }
     }
-}
-
-fn sessions(sessions: Vec<SessionEntry>, wdisplay: bool, theme: Theme) -> Result<()> {
-    let offset = UtcOffset::current_local_offset()?;
-    let date_format =
-        format_description::parse("[weekday repr:short], [day] [month repr:long] [year]")?;
-    let time_format = format_description::parse("[hour]:[minute]")?;
-
-    element! {
-        View(
-            flex_direction: FlexDirection::Column,
-            gap: Gap::Length(2),
-
-            border_style: BorderStyle::Round,
-            border_edges: Edges::Left,
-            border_color: theme.timeline_color,
-        ) {
-            #(
-                sessions.iter().scan(None::<i64>, |previous, (session, alias)| {
-                    let duration = session.end - session.start;
-
-                    let cdt = OffsetDateTime::from_unix_timestamp(session.start)
-                        .unwrap()
-                        .to_offset(offset);
-                    let pdt = (*previous)
-                        .map(|start| OffsetDateTime::from_unix_timestamp(start)
-                        .unwrap()
-                        .to_offset(offset));
-
-                    *previous = Some(session.start);
-
-                    Some(element! {
-                        View(flex_direction: FlexDirection::Column) {
-                            #(
-                                if pdt.is_none_or(|p| cdt.date() != p.date()) {
-                                    Some(
-                                        element! {
-                                            View(
-                                                padding_left: Padding::Length(4),
-                                                padding_bottom: Padding::Length(2)
-                                            ) {
-                                                Text(
-                                                    content: cdt.format(&date_format).unwrap(),
-                                                    color: Some(theme.date_color),
-                                                    weight: Weight::Bold,
-                                                )
-                                            }
-                                        }
-                                    )
-                                } else {
-                                    None
-                                }
-                            )
-                            View {
-                                View(
-                                    border_style: BorderStyle::Round,
-                                    border_edges: Edges::Top,
-                                    border_color: theme.timeline_color,
-                                    margin_right: Margin::Length(1),
-                                    width: 3
-                                )
-                                Text(
-                                    content: format!("({}) ",
-                                    cdt.format(&time_format).unwrap()),
-                                    color: time_color(cdt)
-                                )
-                                #(
-                                    match (&session.state, alias, wdisplay) {
-                                        (State::Active { .. }, Some(al), false) => element!( View {
-                                            Text(
-                                                content: &al.name,
-                                                weight: Weight::Bold,
-                                                color: al.color.unwrap_or(theme.app_name_color)
-                                            )
-                                        }),
-                                        (State::Active { workspace: w, .. }, Some(al), true) => element!(
-                                            View {
-                                                Text(
-                                                    content: &al.name,
-                                                    weight: Weight::Bold,
-                                                    color: al.color.unwrap_or(theme.app_name_color)
-                                                )
-                                                Text(
-                                                    content: format!(" ({})",
-                                                        w.map(|w| w.to_string()).unwrap_or_default()
-                                                    ),
-                                                    color: Color::Grey,
-                                                )
-                                            }),
-                                        (State::Active { app_id, workspace: w, .. }, None, true) => element!(
-                                            View {
-                                                Text(
-                                                    content: app_id,
-                                                    weight: Weight::Bold,
-                                                    color: theme.app_name_color
-                                                )
-                                                Text(
-                                                    content: format!(" ({})",
-                                                        w.map(|w| w.to_string()).unwrap_or_default()
-                                                    ),
-                                                    color: Color::Grey,
-                                                )
-                                            }),
-                                        (State::Active { app_id, .. }, None, false) => element! ( View {
-                                            Text(
-                                                content: app_id,
-                                                weight: Weight::Bold,
-                                                color: theme.app_name_color
-                                            )
-                                        }),
-                                        (State::Idle, _, _) => element!( View {
-                                            Text(
-                                                content: "Idle",
-                                                color: theme.idle_session_color,
-                                                weight: Weight::Bold
-                                            )
-                                        })
-                                    }
-                                )
-                                Text(content: ": ")
-                                Text(
-                                    content: human_duration(duration),
-                                    color: duration_color(duration, theme.timeline_session_duration_sensitivity * 60)
-                                )
-                            }
-                        }
-                    })
-                })
-            )
-        }
-    }
-    .print();
-
-    Ok(())
-}
-
-fn time(from: i64, to: i64, time_data: TimeData, wdisplay: bool, theme: Theme) -> Result<()> {
-    let tst = time_data.total_screen_time;
-    let idt = time_data.idle_time;
-
-    let offset = UtcOffset::current_local_offset()?;
-    let format = format_description::parse("[day] [month repr:long] [year]")?;
-
-    let fdt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
-    let tdt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
-
-    let time_period_multiplier = u64::try_from((to - from) / 86400)?.max(1);
-
-    element! {
-        View(flex_direction: FlexDirection::Column) {
-            View {
-                MixedText(contents: vec![
-                    MixedTextContent::new("From "),
-                    MixedTextContent::new(fdt.format(&format)?)
-                        .color(theme.date_color)
-                        .weight(Weight::Bold),
-                ])
-                MixedText(contents: vec![
-                    MixedTextContent::new(" to "),
-                    MixedTextContent::new(tdt.format(&format)?)
-                        .color(theme.date_color)
-                        .weight(Weight::Bold),
-                ])
-            }
-            View(
-                flex_direction: FlexDirection::Column,
-                padding: 1,
-                padding_bottom: 0,
-            ) {
-                #(
-                    time_data.entries.iter().map(|TimeEntry { state, duration, group, alias }| {
-                        element!(
-                            View {
-                                View(width: 12, padding_right: 1) {
-                                    #(
-                                        group.as_ref().map(|g| element! {
-                                            Text(content: &g.name, color: g.color)
-                                        })
-                                    )
-                                }
-                                View(width: 24, padding_right: 1) {
-                                    #(
-                                        match (state, alias, wdisplay) {
-                                            (State::Active { .. }, Some(a), false) =>
-                                                Some(element! { View {
-                                                    Text(
-                                                        content: &a.name,
-                                                        color: a.color.unwrap_or(theme.app_name_color),
-                                                        weight: Weight::Bold
-                                                    )
-                                                }}),
-                                            (State::Active { workspace: w, .. }, Some(a), true) =>
-                                                Some(element! {
-                                                    View {
-                                                        Text(
-                                                            content: &a.name,
-                                                            color: a.color.unwrap_or(theme.app_name_color),
-                                                            weight: Weight::Bold
-                                                        )
-                                                        Text(
-                                                            content: format!(" ({})",
-                                                                w.map(|w| w.to_string()).unwrap_or_default()
-                                                            ),
-                                                            color: Color::Grey,
-                                                        )
-                                                    }
-                                                }),
-                                            (State::Active { app_id, workspace: w, .. }, None, true) =>
-                                                Some(element! {
-                                                    View {
-                                                        Text(
-                                                            content: app_id,
-                                                            color: theme.app_name_color,
-                                                            weight: Weight::Bold
-                                                        )
-                                                        Text(
-                                                            content: format!(" ({})",
-                                                                w.map(|w| w.to_string()).unwrap_or_default()
-                                                            ),
-                                                            color: Color::Grey,
-                                                        )
-                                                    }
-                                                }),
-                                            (State::Active { app_id, .. }, None, false) =>
-                                                Some(element! { View {
-                                                    Text(
-                                                        content: app_id,
-                                                        color: theme.app_name_color,
-                                                        weight: Weight::Bold
-                                                    )
-                                                }}),
-                                            (State::Idle, _, _) => None,
-                                        }
-                                    )
-                                }
-                                View(width: 12) {
-                                    Text(
-                                        content: human_duration(*duration),
-                                        color: duration_color(*duration, ((tst) / 3).try_into().unwrap())
-                                    )
-                                }
-                            }
-                        )
-                    })
-                )
-            }
-            View(
-                flex_direction: FlexDirection::Column,
-                padding: 1,
-            ) {
-                #(
-                    time_data.groups_time.iter().map(|(group, time)| element! {
-                        View {
-                            View(width: 12, padding_right: 1) {
-                                Text(content: &group.name, color: group.color)
-                            }
-                            Text(
-                                content: human_duration(*time),
-                                color: duration_color(*time, ((tst) / 3).try_into().unwrap()),
-                            )
-                        }
-                    })
-                )
-            }
-            View {
-                Text(content: "Total screen time: ", weight: Weight::Bold)
-                Text(
-                    content: human_duration(tst),
-                    color: duration_color(tst, time_period_multiplier * theme.timestats_total_time_sensitivity * 60)
-                )
-            }
-            View {
-                Text(content: "Idle time: ", color: Color::DarkGrey, weight: Weight::Bold)
-                Text(
-                    content: human_duration(idt),
-                    color: duration_color(idt, time_period_multiplier * theme.timestats_idle_time_sensitivity * 60)
-                )
-            }
-        }
-    }.print();
-
-    Ok(())
 }

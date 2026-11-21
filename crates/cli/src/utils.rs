@@ -5,12 +5,11 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use crate::{Alias, Group};
+use crate::{Alias, commands::timeline::SessionEntry};
 use anyhow::Result;
 use iocraft::prelude::Color;
 use spyland_core::{Session, State};
 use spyland_lib::db::{Db, QueryFilter};
-use std::collections::HashMap;
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
 pub fn duration_color(seconds: i64, sensitivity: u64) -> Color {
@@ -144,31 +143,7 @@ pub fn human_duration(seconds: i64) -> String {
     }
 }
 
-pub type SessionEntry = (Session, Option<Alias>);
-
-pub async fn load_sessions(
-    from: i64,
-    to: i64,
-    limit: Option<i64>,
-    aliases: Vec<Alias>,
-    display_workspace: bool,
-) -> Result<Vec<SessionEntry>> {
-    let mut sessions = query_sessions(from, to, limit, aliases).await?;
-    if !display_workspace {
-        for (session, _) in &mut sessions {
-            if let State::Active { app_id, .. } = &session.state {
-                session.state = State::Active {
-                    app_id: app_id.clone(),
-                    workspace: None,
-                }
-            }
-        }
-    }
-
-    Ok(sessions)
-}
-
-async fn query_sessions(
+pub async fn query_sessions(
     from: i64,
     to: i64,
     limit: Option<i64>,
@@ -203,106 +178,4 @@ async fn query_sessions(
             (session, alias)
         })
         .collect())
-}
-
-pub struct TimeEntry {
-    pub state: State,
-    pub duration: i64,
-    pub group: Option<Group>,
-    pub alias: Option<Alias>,
-}
-
-pub struct TimeData {
-    pub entries: Vec<TimeEntry>,
-    pub groups_time: HashMap<Group, i64>,
-    pub total_screen_time: i64,
-    pub idle_time: i64,
-}
-
-pub async fn load_time_data(
-    from: i64,
-    to: i64,
-    ascending: bool,
-    by_time: bool,
-    display_workspace: bool,
-    groups: Vec<Group>,
-    aliases: Vec<Alias>,
-) -> Result<TimeData> {
-    let sessions = query_sessions(from, to, None, aliases).await?;
-
-    let mut entries: HashMap<State, TimeEntry> = HashMap::new();
-    let mut groups_time = HashMap::new();
-    let mut total_screen_time = 0;
-    let mut idle_time = 0;
-
-    for (session, alias) in sessions {
-        let duration = session.end - session.start;
-        let group = groups
-            .iter()
-            .find(|g| g.selector.matches(&session.state))
-            .cloned();
-
-        if let Some(g) = group.clone() {
-            groups_time
-                .entry(g)
-                .and_modify(|d| *d += duration)
-                .or_insert(duration);
-        }
-
-        match &session.state {
-            State::Active { .. } => {
-                total_screen_time += duration;
-
-                let state = if display_workspace {
-                    session.state.clone()
-                } else {
-                    if let State::Active { app_id, .. } = &session.state {
-                        State::Active {
-                            app_id: app_id.clone(),
-                            workspace: None,
-                        }
-                    } else {
-                        session.state
-                    }
-                };
-                entries
-                    .entry(state.clone())
-                    .and_modify(|entry| entry.duration += duration)
-                    .or_insert(TimeEntry {
-                        state,
-                        duration,
-                        group,
-                        alias,
-                    });
-            }
-            State::Idle => idle_time += duration,
-        }
-    }
-
-    let mut entries: Vec<TimeEntry> = entries.into_values().collect();
-    entries.sort_by(|left, right| {
-        let ordering = if by_time {
-            left.duration.cmp(&right.duration)
-        } else {
-            match (&left.state, &right.state) {
-                (State::Active { app_id: left, .. }, State::Active { app_id: right, .. }) => {
-                    left.cmp(right)
-                }
-                _ => std::cmp::Ordering::Equal,
-            }
-        };
-
-        if ascending {
-            ordering
-        } else {
-            ordering.reverse()
-        }
-    });
-
-    Ok(TimeData {
-        entries,
-        groups_time,
-        total_screen_time,
-        idle_time,
-    })
 }
