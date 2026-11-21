@@ -53,6 +53,7 @@ enum Command {
         #[arg(short = 'W', long)]
         workspace: Option<bool>,
     },
+    Overview,
 }
 
 use anyhow::Result;
@@ -140,6 +141,16 @@ async fn main() -> Result<()> {
                 )
                 .await?,
                 workspace.unwrap_or(config.display_workspace),
+                config.theme,
+            )
+        }
+        Command::Overview => {
+            let (from, to) = resolve_range(args.from, args.to, 7)?;
+
+            commands::overview::overview(
+                from,
+                to,
+                load_time_data(from, to, false, true, false, config.groups, config.aliases).await?,
                 config.theme,
             )
         }
