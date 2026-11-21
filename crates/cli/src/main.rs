@@ -109,14 +109,7 @@ async fn main() -> Result<()> {
         Command::Sessions { limit, workspace } => {
             let (from, to) = resolve_range(args.from, args.to, 1)?;
             commands::timeline::sessions(
-                load_sessions(
-                    from,
-                    to,
-                    limit,
-                    config.aliases,
-                    workspace.unwrap_or(config.display_workspace),
-                )
-                .await?,
+                load_sessions(from, to, limit, config.aliases).await?,
                 workspace.unwrap_or(config.display_workspace),
                 config.theme,
             )

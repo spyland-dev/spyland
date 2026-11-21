@@ -5,10 +5,9 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-use crate::{Alias, commands::timeline::SessionEntry};
 use anyhow::Result;
 use iocraft::prelude::Color;
-use spyland_core::{Session, State};
+use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
 use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
 
@@ -143,12 +142,7 @@ pub fn human_duration(seconds: i64) -> String {
     }
 }
 
-pub async fn query_sessions(
-    from: i64,
-    to: i64,
-    limit: Option<i64>,
-    aliases: Vec<Alias>,
-) -> Result<Vec<SessionEntry>> {
+pub async fn query_sessions(from: i64, to: i64, limit: Option<i64>) -> Result<Vec<Session>> {
     let db = Db::open_default().await?;
 
     let sessions_sql = match (from, to, limit) {
@@ -164,18 +158,5 @@ pub async fn query_sessions(
         }
     };
 
-    Ok(sessions_sql
-        .into_iter()
-        .map(Session::from)
-        .map(|session| {
-            let alias = match &session.state {
-                State::Active { app_id, .. } => aliases
-                    .iter()
-                    .find(|alias| alias.app_ids.contains(app_id))
-                    .cloned(),
-                State::Idle => None,
-            };
-            (session, alias)
-        })
-        .collect())
+    Ok(sessions_sql.into_iter().map(Session::from).collect())
 }

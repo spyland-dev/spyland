@@ -1,6 +1,7 @@
 use crate::{
+    commands::timeline::load_sessions,
     config::{Alias, Group, Theme},
-    utils::{duration_color, human_duration, query_sessions},
+    utils::{duration_color, human_duration},
 };
 use anyhow::Result;
 use iocraft::prelude::*;
@@ -31,7 +32,7 @@ pub async fn load_time_data(
     groups: Vec<Group>,
     aliases: Vec<Alias>,
 ) -> Result<TimeData> {
-    let sessions = query_sessions(from, to, None, aliases).await?;
+    let sessions = load_sessions(from, to, None, aliases).await?;
 
     let mut entries: HashMap<State, TimeEntry> = HashMap::new();
     let mut groups_time = HashMap::new();

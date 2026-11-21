@@ -15,19 +15,20 @@ pub async fn load_sessions(
     to: i64,
     limit: Option<i64>,
     aliases: Vec<Alias>,
-    display_workspace: bool,
 ) -> Result<Vec<SessionEntry>> {
-    let mut sessions = query_sessions(from, to, limit, aliases).await?;
-    if !display_workspace {
-        for (session, _) in &mut sessions {
-            if let State::Active { app_id, .. } = &session.state {
-                session.state = State::Active {
-                    app_id: app_id.clone(),
-                    workspace: None,
-                }
-            }
-        }
-    }
+    let sessions = query_sessions(from, to, limit)
+        .await?
+        .into_iter()
+        .map(|session| {
+            let alias = if let State::Active { app_id, .. } = &session.state {
+                aliases.iter().find(|a| a.app_ids.contains(app_id)).cloned()
+            } else {
+                None
+            };
+
+            (session, alias)
+        })
+        .collect();
 
     Ok(sessions)
 }
