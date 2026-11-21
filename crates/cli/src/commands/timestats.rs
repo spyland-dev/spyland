@@ -102,9 +102,24 @@ pub async fn load_time_data(
         }
     });
 
+    let mut gvec: Vec<(Group, i64)> = groups_time.into_iter().collect();
+    gvec.sort_by(|left, right| {
+        let ordering = if by_time {
+            left.1.cmp(&right.1)
+        } else {
+            left.0.name.cmp(&right.0.name)
+        };
+
+        if ascending {
+            ordering
+        } else {
+            ordering.reverse()
+        }
+    });
+
     Ok(TimeData {
         entries,
-        groups_time,
+        groups_time: gvec.into_iter().collect(),
         total_screen_time,
         idle_time,
     })
