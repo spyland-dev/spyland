@@ -58,13 +58,13 @@ enum Command {
 
 use anyhow::Result;
 use spyland_lib::config::ConfigFile;
-use time::{OffsetDateTime, Time, UtcOffset};
+use time::{OffsetDateTime, Time, UtcOffset, macros::time};
 
 mod commands;
 mod config;
 mod utils;
 use crate::{
-    commands::{timeline::load_sessions, timestats::load_time_data},
+    commands::{overview::divide_time, timeline::load_sessions, timestats::load_time_data},
     config::*,
     utils::*,
 };
@@ -98,7 +98,7 @@ async fn main() -> Result<()> {
             .transpose()?
             .unwrap_or_else(|| {
                 today
-                    .with_time(time::macros::time!(23:59:59))
+                    .with_time(time!(23:59:59))
                     .assume_offset(offset)
                     .unix_timestamp()
             });
@@ -144,6 +144,7 @@ async fn main() -> Result<()> {
                 from,
                 to,
                 load_time_data(from, to, false, true, false, config.groups, config.aliases).await?,
+                divide_time(from, to).await?,
                 config.theme,
             )
         }
