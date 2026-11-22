@@ -20,20 +20,18 @@ See source code on GitHub: https://github.com/spyland-dev/spyland",
 struct Args {
     #[command(subcommand)]
     command: Command,
-
-    /// Start of the period (timestamp, date, time or datetime)
-    #[arg(short = 'f', long, global = true)]
-    from: Option<String>,
-
-    /// End of the period (timestamp, date, time or datetime)
-    #[arg(short = 't', long, global = true)]
-    to: Option<String>,
 }
 
 #[derive(Subcommand, Clone)]
 enum Command {
     /// Shows all your sessions in a row
     Sessions {
+        /// Start of the period (timestamp, date, time or datetime)
+        #[arg(short = 'f', long)]
+        from: Option<String>,
+        /// End of the period (timestamp, date, time or datetime)
+        #[arg(short = 't', long)]
+        to: Option<String>,
         /// Maximum number of sessions to display.
         #[arg(short = 'L', long)]
         limit: Option<i64>,
@@ -43,6 +41,12 @@ enum Command {
     },
     /// Shows your total screen time
     Time {
+        /// Start of the period (timestamp, date, time or datetime)
+        #[arg(short = 'f', long)]
+        from: Option<String>,
+        /// End of the period (timestamp, date, time or datetime)
+        #[arg(short = 't', long)]
+        to: Option<String>,
         /// Sort ascending
         #[arg(short = 'A', long)]
         ascending: Option<bool>,
@@ -53,7 +57,12 @@ enum Command {
         #[arg(short = 'W', long)]
         workspace: Option<bool>,
     },
-    Overview,
+    Overview {
+        date: Option<String>,
+
+        #[arg(short = 'd', long = "division", default_value = TimeDivision::Daily)]
+        time_division: TimeDivision,
+    },
 }
 
 use anyhow::Result;
@@ -64,7 +73,11 @@ mod commands;
 mod config;
 mod utils;
 use crate::{
-    commands::{overview::divide_time, timeline::load_sessions, timestats::load_time_data},
+    commands::{
+        overview::{TimeDivision, divide_time},
+        timeline::load_sessions,
+        timestats::load_time_data,
+    },
     config::*,
     utils::*,
 };
@@ -106,8 +119,13 @@ async fn main() -> Result<()> {
     };
 
     match args.command {
-        Command::Sessions { limit, workspace } => {
-            let (from, to) = resolve_range(args.from, args.to, 1)?;
+        Command::Sessions {
+            from,
+            to,
+            limit,
+            workspace,
+        } => {
+            let (from, to) = resolve_range(from, to, 1)?;
             commands::timeline::sessions(
                 load_sessions(from, to, limit, config.aliases).await?,
                 workspace.unwrap_or(config.display_workspace),
@@ -115,11 +133,13 @@ async fn main() -> Result<()> {
             )
         }
         Command::Time {
+            from,
+            to,
             ascending,
             by_time,
             workspace,
         } => {
-            let (from, to) = resolve_range(args.from, args.to, 7)?;
+            let (from, to) = resolve_range(from, to, 7)?;
             commands::timestats::time(
                 from,
                 to,
@@ -137,14 +157,52 @@ async fn main() -> Result<()> {
                 config.theme,
             )
         }
-        Command::Overview => {
-            let (from, to) = resolve_range(args.from, args.to, 7)?;
+        Command::Overview {
+            date,
+            time_division,
+        } => {
+            use time::{Date, Month, Weekday};
+
+            let target = match date {
+                Some(d) => OffsetDateTime::from_unix_timestamp(parse_flexible_time(d, offset)?)?,
+                None => OffsetDateTime::now_utc(),
+            }
+            .to_offset(offset)
+            .date();
+
+            let (from, to) = match time_division {
+                TimeDivision::Daily => (
+                    Date::from_iso_week_date(target.year(), target.iso_week(), Weekday::Monday)?,
+                    Date::from_iso_week_date(target.year(), target.iso_week(), Weekday::Sunday)?,
+                ),
+                TimeDivision::Weekly => (
+                    target.replace_day(1)?,
+                    // The last day of the current month.
+                    Date::from_calendar_date(target.year(), target.month().next(), 1)?
+                        .previous_day()
+                        .unwrap(),
+                ),
+                TimeDivision::Monthly => (
+                    Date::from_calendar_date(target.year(), Month::January, 1)?,
+                    target,
+                ),
+            };
+
+            let from = from
+                .with_time(Time::MIDNIGHT)
+                .assume_offset(offset)
+                .unix_timestamp();
+            let to = to
+                .with_time(time!(23:59:59))
+                .assume_offset(offset)
+                .unix_timestamp();
 
             commands::overview::overview(
                 from,
                 to,
                 load_time_data(from, to, false, true, false, config.groups, config.aliases).await?,
-                divide_time(from, to).await?,
+                divide_time(from, to, time_division.clone()).await?,
+                time_division,
                 config.theme,
             )
         }
