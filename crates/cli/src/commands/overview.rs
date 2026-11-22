@@ -168,43 +168,6 @@ pub fn overview(
                     .color(theme.date_color)
                     .weight(Weight::Bold),
             ], align: TextAlign::Center)
-
-            View(flex_grow: 1.0) {
-                #(
-                    time_data.entries.iter().map(|TimeEntry { state, duration, group, alias }| {
-                        let percent = (*duration as f32) / (time_data.total_screen_time as f32) * 100.0;
-                        let color = match (alias, group) {
-                            (Some(a), _) => a.color,
-                            (None, Some(g)) => g.color,
-                            (None, None) => None,
-                        }.unwrap_or(Color::Grey);
-                        let name = if percent >= 7.5 {
-                            match (state, alias) {
-                                (State::Active { app_id, .. }, None) => app_id,
-                                (State::Active { .. }, Some(a)) => &a.name,
-                                (_, _) => "",
-                            }
-                        } else { "" };
-
-                        element! {
-                            View(
-                                width: Size::Percent(percent),
-                                background_color: color,
-                                flex_direction: FlexDirection::Column,
-                                justify_content: JustifyContent::Center,
-                            ) {
-                                Text(
-                                    content: name,
-                                    color: Color::Black,
-                                    weight: Weight::Bold,
-                                    align: TextAlign::Center,
-                                )
-                            }
-                        }
-                    })
-                )
-            }
-
             View(flex_grow: 1.0, align_items: AlignItems::Center) {
                 #(
                     dtd.into_iter().map(|DividedTimeData { start, total_screen_time, idle_time }| {
@@ -248,6 +211,43 @@ pub fn overview(
                     })
                 )
             }
+
+            View(flex_grow: 1.0) {
+                #(
+                    time_data.entries.iter().map(|TimeEntry { state, duration, group, alias }| {
+                        let percent = (*duration as f32) / (time_data.total_screen_time as f32) * 100.0;
+                        let color = match (alias, group) {
+                            (Some(a), _) => a.color,
+                            (None, Some(g)) => g.color,
+                            (None, None) => None,
+                        }.unwrap_or(Color::Grey);
+                        let name = if percent >= 7.5 {
+                            match (state, alias) {
+                                (State::Active { app_id, .. }, None) => app_id,
+                                (State::Active { .. }, Some(a)) => &a.name,
+                                (_, _) => "",
+                            }
+                        } else { "" };
+
+                        element! {
+                            View(
+                                width: Size::Percent(percent),
+                                background_color: color,
+                                flex_direction: FlexDirection::Column,
+                                justify_content: JustifyContent::Center,
+                            ) {
+                                Text(
+                                    content: name,
+                                    color: Color::Black,
+                                    weight: Weight::Bold,
+                                    align: TextAlign::Center,
+                                )
+                            }
+                        }
+                    })
+                )
+            }
+
 
             View(flex_grow: 1.0) {
                 View(flex_direction: FlexDirection::Column) {
