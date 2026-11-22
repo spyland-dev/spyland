@@ -57,9 +57,12 @@ enum Command {
         #[arg(short = 'W', long)]
         workspace: Option<bool>,
     },
+    /// Shows a simple visual overview of your activity
     Overview {
+        /// From what date to show overview (default: today)
         date: Option<String>,
 
+        /// How to display your activity. Available options: daily, weekly, monthly
         #[arg(short = 'd', long = "division", default_value = TimeDivision::Daily)]
         time_division: TimeDivision,
     },
