@@ -5,11 +5,15 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+use std::str::FromStr;
+
 use anyhow::Result;
 use iocraft::prelude::Color;
 use spyland_core::Session;
 use spyland_lib::db::{Db, QueryFilter};
-use time::{Date, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, format_description};
+use time::{
+    Date, Month, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, Weekday, format_description,
+};
 
 pub fn duration_color(seconds: i64, sensitivity: u64) -> Color {
     assert_ne!(sensitivity, 0, "`sensitivity` can not be zero.");
@@ -77,6 +81,39 @@ pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
         return Ok(odt.unix_timestamp());
     }
 
+    let now = OffsetDateTime::now_utc().to_offset(offset);
+
+    match s {
+        "now" => return Ok(now.unix_timestamp()),
+        "today" => {
+            return Ok(now.replace_time(Time::MIDNIGHT).unix_timestamp());
+        }
+        "yesterday" => {
+            return Ok(now
+                .date()
+                .previous_day()
+                .unwrap()
+                .with_time(Time::MIDNIGHT)
+                .assume_offset(offset)
+                .unix_timestamp());
+        }
+        _ => {}
+    };
+
+    if let Ok(w) = Weekday::from_str(s) {
+        return Ok(Date::from_iso_week_date(now.year(), now.iso_week(), w)?
+            .with_time(Time::MIDNIGHT)
+            .assume_offset(offset)
+            .unix_timestamp());
+    }
+
+    if let Ok(m) = Month::from_str(s) {
+        return Ok(Date::from_calendar_date(now.year(), m, 1)?
+            .with_time(Time::MIDNIGHT)
+            .assume_offset(offset)
+            .unix_timestamp());
+    }
+
     let normalized = s.replace(['+', '_', 'T'], " ");
 
     let date_formats = [
@@ -118,7 +155,7 @@ pub fn parse_flexible_time(s: String, offset: UtcOffset) -> Result<i64> {
         if let Ok(format) = format_description::parse(time_fmt)
             && let Ok(time) = Time::parse(s, &format)
         {
-            let today = OffsetDateTime::now_utc().to_offset(offset).date();
+            let today = now.date();
             let pdt = PrimitiveDateTime::new(today, time);
             return Ok(pdt.assume_offset(offset).unix_timestamp());
         }
