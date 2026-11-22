@@ -221,13 +221,11 @@ pub fn overview(
                             (None, Some(g)) => g.color,
                             (None, None) => None,
                         }.unwrap_or(Color::Grey);
-                        let name = if percent >= 7.5 {
-                            match (state, alias) {
-                                (State::Active { app_id, .. }, None) => app_id,
-                                (State::Active { .. }, Some(a)) => &a.name,
-                                (_, _) => "",
-                            }
-                        } else { "" };
+                        let name = match (state, alias) {
+                            (State::Active { app_id, .. }, None) if (app_id.len() as f32) < percent => app_id,
+                            (State::Active { .. }, Some(a)) if (a.name.len() as f32) < percent => &a.name,
+                            (_, _) => "",
+                        };
 
                         element! {
                             View(
