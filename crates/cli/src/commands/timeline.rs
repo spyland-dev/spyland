@@ -1,3 +1,10 @@
+/*
+ *  spyland-cli — command line interface for spyland
+ *  part of the spyland project
+ *  Copyright (C) 2026 Ilya Korobov (NonExistPlayer)
+ *  SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 use crate::{
     config::{Alias, Theme},
     utils::{duration_color, human_duration, query_sessions, time_color},
