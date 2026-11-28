@@ -14,10 +14,17 @@ use crate::{
 use anyhow::Result;
 use iocraft::prelude::*;
 use spyland_core::State;
-use time::{OffsetDateTime, Time, UtcOffset, ext::NumericalDuration, format_description};
+use std::{
+    collections::{BTreeMap, HashMap},
+    iter,
+};
+use time::{
+    Date, Duration, Month, OffsetDateTime, Time, UtcOffset, ext::NumericalDuration,
+    format_description,
+};
 
+#[derive(Clone)]
 pub struct DividedTimeData {
-    pub start: i64,
     pub total_screen_time: i64,
     pub idle_time: i64,
 }
@@ -84,13 +91,13 @@ pub async fn divide_time(
     from: i64,
     to: i64,
     time_division: TimeDivision,
-) -> Result<Vec<DividedTimeData>> {
+) -> Result<HashMap<i64, DividedTimeData>> {
     let offset = UtcOffset::current_local_offset()?;
 
     let date = OffsetDateTime::from_unix_timestamp(from)?
         .to_offset(offset)
         .date();
-    let mut dtd = Vec::new();
+    let mut dtd = HashMap::new();
 
     let mut start = date.with_time(Time::MIDNIGHT).assume_offset(offset);
     let mut end = start;
@@ -118,11 +125,13 @@ pub async fn divide_time(
         }
 
         if total_screen_time > 0 {
-            dtd.push(DividedTimeData {
-                start: s,
-                total_screen_time,
-                idle_time,
-            });
+            dtd.insert(
+                s,
+                DividedTimeData {
+                    total_screen_time,
+                    idle_time,
+                },
+            );
         }
 
         start = time_division.advanced_date_time(start).unwrap();
@@ -135,7 +144,7 @@ pub fn overview(
     from: i64,
     to: i64,
     time_data: TimeData,
-    dtd: Vec<DividedTimeData>,
+    dtd_hmap: HashMap<i64, DividedTimeData>,
     time_division: TimeDivision,
     theme: Theme,
 ) -> Result<()> {
@@ -149,6 +158,44 @@ pub fn overview(
 
     let fdt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
     let tdt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
+
+    let expected_elements = match time_division {
+        Daily => 7,
+        Weekly => 4,
+        Monthly => 12,
+    } + dtd_hmap.len();
+
+    let dtd_vec = dtd_hmap
+        .into_iter()
+        .map(Some)
+        .chain(iter::repeat(None))
+        .take(expected_elements)
+        .enumerate();
+
+    let mut dtd_btmap = BTreeMap::new();
+
+    for (i, sdtd) in dtd_vec {
+        let (key, value) = match sdtd {
+            Some((start, dtd)) => (start, Some(dtd)),
+            None => {
+                let start = match time_division {
+                    Daily => fdt.date().checked_add(Duration::days(i as i64)).unwrap(),
+                    Weekly => fdt.date().checked_add(Duration::weeks(i as i64)).unwrap(),
+                    Monthly => {
+                        Date::from_calendar_date(fdt.year(), Month::January.nth_next(i as u8), 1)
+                            .unwrap()
+                    }
+                }
+                .with_time(Time::MIDNIGHT)
+                .assume_offset(offset)
+                .unix_timestamp();
+
+                (start, None)
+            }
+        };
+
+        dtd_btmap.entry(key).or_insert(value);
+    }
 
     element! {
         View(
@@ -170,42 +217,65 @@ pub fn overview(
             ], align: TextAlign::Center)
             View(flex_grow: 1.0, align_items: AlignItems::Center) {
                 #(
-                    dtd.into_iter().map(|DividedTimeData { start, total_screen_time, idle_time }| {
-                        let divisor = match time_division {
-                            Daily => 1,
-                            Weekly => 3,
-                            Monthly => 6,
-                        };
-                        let tst_height = total_screen_time / 60 / 60 / divisor;
-                        let idt_height = idle_time / 60 / 60 / divisor;
-
+                    dtd_btmap.into_iter().map(|(start, dtd)| {
                         let date = OffsetDateTime::from_unix_timestamp(start)
                             .unwrap()
                             .to_offset(offset)
                             .format(&short_format)
                             .unwrap();
 
-                        element! {
-                            View(
-                                flex_grow: 1.0,
-                                height: 100pct,
-                                flex_direction: FlexDirection::Column,
-                                align_items: AlignItems::Center,
-                                justify_content: JustifyContent::FlexEnd,
-                            ) {
-                                View(
-                                    height: Size::Length(tst_height as u32),
-                                    min_height: 1,
-                                    width: 15pct,
-                                    background_color: Color::Blue
-                                )
-                                View(
-                                    height: Size::Length(idt_height as u32),
-                                    width: 15pct,
-                                    background_color: Color::DarkGrey
-                                )
+                        match dtd {
+                            Some(DividedTimeData { total_screen_time, idle_time }) => {
+                                let divisor = match time_division {
+                                    Daily => 1,
+                                    Weekly => 3,
+                                    Monthly => 6,
+                                };
+                                let tst_height = total_screen_time / 60 / 60 / divisor;
+                                let idt_height = idle_time / 60 / 60 / divisor;
 
-                                Text(content: date, weight: Weight::Bold)
+                                element! {
+                                    View(
+                                        flex_grow: 1.0,
+                                        height: 100pct,
+                                        flex_direction: FlexDirection::Column,
+                                        align_items: AlignItems::Center,
+                                        justify_content: JustifyContent::FlexEnd,
+                                    ) {
+                                        View(
+                                            height: Size::Length(tst_height as u32),
+                                            min_height: 1,
+                                            width: 15pct,
+                                            background_color: Color::Blue
+                                        )
+                                        View(
+                                            height: Size::Length(idt_height as u32),
+                                            width: 15pct,
+                                            background_color: Color::Grey
+                                        )
+
+                                        Text(content: date, weight: Weight::Bold)
+                                    }
+                                }
+                            }
+                            None => {
+                                element! {
+                                    View(
+                                        flex_grow: 1.0,
+                                        height: 100pct,
+                                        flex_direction: FlexDirection::Column,
+                                        align_items: AlignItems::Center,
+                                        justify_content: JustifyContent::FlexEnd,
+                                    ) {
+                                        View(
+                                            height: 1,
+                                            width: 15pct,
+                                            background_color: Color::DarkGrey,
+                                        )
+
+                                        Text(content: date, color: Color::DarkGrey, weight: Weight::Bold)
+                                    }
+                                }
                             }
                         }
                     })
