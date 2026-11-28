@@ -149,6 +149,7 @@ pub fn overview(
     theme: Theme,
 ) -> Result<()> {
     let offset = UtcOffset::current_local_offset()?;
+
     let format = format_description::parse("[day] [month repr:long] [year]")?;
     let short_format = match time_division {
         Daily => format_description::parse("[weekday repr:short] [day] [month repr:short]"),
@@ -156,8 +157,8 @@ pub fn overview(
         Monthly => format_description::parse("[month repr:long]"),
     }?;
 
-    let fdt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
-    let tdt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
+    let from_dt = OffsetDateTime::from_unix_timestamp(from)?.to_offset(offset);
+    let to_dt = OffsetDateTime::from_unix_timestamp(to)?.to_offset(offset);
 
     let expected_elements = match time_division {
         Daily => 7,
@@ -179,12 +180,20 @@ pub fn overview(
             Some((start, dtd)) => (start, Some(dtd)),
             None => {
                 let start = match time_division {
-                    Daily => fdt.date().checked_add(Duration::days(i as i64)).unwrap(),
-                    Weekly => fdt.date().checked_add(Duration::weeks(i as i64)).unwrap(),
-                    Monthly => {
-                        Date::from_calendar_date(fdt.year(), Month::January.nth_next(i as u8), 1)
-                            .unwrap()
-                    }
+                    Daily => from_dt
+                        .date()
+                        .checked_add(Duration::days(i as i64))
+                        .unwrap(),
+                    Weekly => from_dt
+                        .date()
+                        .checked_add(Duration::weeks(i as i64))
+                        .unwrap(),
+                    Monthly => Date::from_calendar_date(
+                        from_dt.year(),
+                        Month::January.nth_next(i as u8),
+                        1,
+                    )
+                    .unwrap(),
                 }
                 .with_time(Time::MIDNIGHT)
                 .assume_offset(offset)
@@ -207,14 +216,15 @@ pub fn overview(
         ) {
             MixedText(contents: vec![
                 MixedTextContent::new("From "),
-                MixedTextContent::new(fdt.format(&format)?)
+                MixedTextContent::new(from_dt.format(&format)?)
                     .color(theme.date_color)
                     .weight(Weight::Bold),
                 MixedTextContent::new(" to "),
-                MixedTextContent::new(tdt.format(&format)?)
+                MixedTextContent::new(to_dt.format(&format)?)
                     .color(theme.date_color)
                     .weight(Weight::Bold),
             ], align: TextAlign::Center)
+
             View(flex_grow: 1.0, align_items: AlignItems::Center) {
                 #(
                     dtd_btmap.into_iter().map(|(start, dtd)| {
@@ -286,11 +296,13 @@ pub fn overview(
                 #(
                     time_data.entries.iter().map(|TimeEntry { state, duration, group, alias }| {
                         let percent = (*duration as f32) / (time_data.total_screen_time as f32) * 100.0;
+
                         let color = match (alias, group) {
                             (Some(a), _) => a.color,
                             (None, Some(g)) => g.color,
                             (None, None) => None,
                         }.unwrap_or(Color::Grey);
+
                         let name = match (state, alias) {
                             (State::Active { app_id, .. }, None) if (app_id.len() as f32) < percent => app_id,
                             (State::Active { .. }, Some(a)) if (a.name.len() as f32) < percent => &a.name,
@@ -327,7 +339,6 @@ pub fn overview(
                             .enumerate()
                             .map(
                                 |(index, TimeEntry { state, duration, alias, .. })| {
-                                    let index = index + 1;
                                     let name = match (state, alias) {
                                         (State::Active { app_id, .. }, None) => app_id,
                                         (State::Active { .. }, Some(a)) => &a.name,
@@ -336,7 +347,7 @@ pub fn overview(
 
                                     element! {
                                         MixedText(contents: vec![
-                                            MixedTextContent::new(format!("{index}. ")),
+                                            MixedTextContent::new(format!("{}. ", index + 1)),
                                             MixedTextContent::new(name)
                                                 .color(alias
                                                     .clone()
@@ -367,25 +378,23 @@ pub fn overview(
                             .take(5)
                             .enumerate()
                             .map(
-                                |(index, (group, duration))| {
-                                    let index = index + 1;
+                                |(index, (group, duration))| element! {
+                                    MixedText(contents: vec![
+                                        MixedTextContent::new(format!("{}. ", index + 1)),
 
-                                    element! {
-                                        MixedText(contents: vec![
-                                            MixedTextContent::new(format!("{index}. ")),
-                                            MixedTextContent::new(&group.name)
-                                                .color(group.color.unwrap_or(Color::Grey))
-                                                .weight(Weight::Bold),
-                                            MixedTextContent::new(format!(" ({})", human_duration(*duration)))
-                                                .color(
-                                                    duration_color(
-                                                        *duration,
-                                                        theme.timestats_total_time_sensitivity * 60
-                                                    )
+                                        MixedTextContent::new(&group.name)
+                                            .color(group.color.unwrap_or(Color::Grey))
+                                            .weight(Weight::Bold),
+
+                                        MixedTextContent::new(format!(" ({})", human_duration(*duration)))
+                                            .color(
+                                                duration_color(
+                                                    *duration,
+                                                    theme.timestats_total_time_sensitivity * 60
                                                 )
-                                            ]
-                                        )
-                                    }
+                                            )
+                                        ]
+                                    )
                                 }
                             )
                     )
